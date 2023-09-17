@@ -47,9 +47,11 @@ typedef StaticQueue_t osStaticMessageQDef_t;
 
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim7;
 TIM_HandleTypeDef htim17;
 
 UART_HandleTypeDef huart2;
+
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -67,6 +69,16 @@ const osMessageQueueAttr_t ASCII_Char_Queue_attributes = {
   .cb_size = sizeof(ASCII_Char_QueueControlBlock),
   .mq_mem = &ASCII_Char_QueueBuffer,
   .mq_size = sizeof(ASCII_Char_QueueBuffer)
+};
+/* Definitions for ProcessQueueTimer */
+osTimerId_t ProcessQueueTimerHandle;
+const osTimerAttr_t ProcessQueueTimer_attributes = {
+  .name = "ProcessQueueTimer"
+};
+/* Definitions for ProcessSemaphore */
+osSemaphoreId_t ProcessSemaphoreHandle;
+const osSemaphoreAttr_t ProcessSemaphore_attributes = {
+  .name = "ProcessSemaphore"
 };
 /* USER CODE BEGIN PV */
 
@@ -89,8 +101,9 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM17_Init(void);
 static void MX_TIM4_Init(void);
-
+static void MX_TIM7_Init(void);
 void StartDefaultTask(void *argument);
+void PQTimer_CB(void *argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -146,6 +159,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM17_Init();
   MX_TIM4_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
 
   // Start timer
@@ -171,9 +185,17 @@ int main(void)
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* creation of ProcessSemaphore */
+  ProcessSemaphoreHandle = osSemaphoreNew(1, 1, &ProcessSemaphore_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
+
+  /* Create the timer(s) */
+  /* creation of ProcessQueueTimer */
+  ProcessQueueTimerHandle = osTimerNew(PQTimer_CB, osTimerPeriodic, NULL, &ProcessQueueTimer_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -190,8 +212,6 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-  Process_Queue_Task_Handle = osThreadNew(Process_Queue_Task, "Process_Queue", &defaultTask_attributes);
-  Display_Queue_Status_Task_Handle = osThreadNew(Display_Queue_Status_Task, "Display_Queue", &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -327,6 +347,44 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 2 */
   HAL_TIM_MspPostInit(&htim4);
+
+}
+
+/**
+  * @brief TIM7 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM7_Init(void)
+{
+
+  /* USER CODE BEGIN TIM7_Init 0 */
+
+  /* USER CODE END TIM7_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM7_Init 1 */
+
+  /* USER CODE END TIM7_Init 1 */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 8000 - 1;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 1000;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM7_Init 2 */
+
+  /* USER CODE END TIM7_Init 2 */
 
 }
 
@@ -649,6 +707,14 @@ void StartDefaultTask(void *argument)
   /* USER CODE END 5 */
 }
 
+/* PQTimer_CB function */
+void PQTimer_CB(void *argument)
+{
+  /* USER CODE BEGIN PQTimer_CB */
+
+  /* USER CODE END PQTimer_CB */
+}
+
 /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM2 interrupt took place, inside
@@ -658,13 +724,13 @@ void StartDefaultTask(void *argument)
   * @retval None
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-	{
-	/* USER CODE BEGIN Callback 0 */
+{
+  /* USER CODE BEGIN Callback 0 */
 	  if (htim == &htim17 ) { MultiFunctionShield__ISRFunc(); }
-	/* USER CODE END Callback 0 */
-	if (htim->Instance == TIM2) {
-		HAL_IncTick();
-		}
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM2) {
+    HAL_IncTick();
+  }
   /* USER CODE BEGIN Callback 1 */
 	}
 
@@ -680,10 +746,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 		// USART_ClearITPendingBit(&huart2, USART_IT);
 		}
-	}
 
 
   /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
