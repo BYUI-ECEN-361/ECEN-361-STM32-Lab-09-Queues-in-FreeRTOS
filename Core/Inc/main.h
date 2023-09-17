@@ -71,8 +71,6 @@ void Error_Handler(void);
 #define B1_EXTI_IRQn EXTI15_10_IRQn
 #define LM35_IN_Pin GPIO_PIN_1
 #define LM35_IN_GPIO_Port GPIOC
-#define Potentiometer_Pin GPIO_PIN_0
-#define Potentiometer_GPIO_Port GPIOA
 #define Button_1_Pin GPIO_PIN_1
 #define Button_1_GPIO_Port GPIOA
 #define Button_1_EXTI_IRQn EXTI1_IRQn
@@ -83,8 +81,8 @@ void Error_Handler(void);
 #define Button_2_Pin GPIO_PIN_4
 #define Button_2_GPIO_Port GPIOA
 #define Button_2_EXTI_IRQn EXTI4_IRQn
-#define DAC2_LED_D1_Pin GPIO_PIN_5
-#define DAC2_LED_D1_GPIO_Port GPIOA
+#define LED_D1_Pin GPIO_PIN_5
+#define LED_D1_GPIO_Port GPIOA
 #define LED_D2_Pin GPIO_PIN_6
 #define LED_D2_GPIO_Port GPIOA
 #define LED_D3_Pin GPIO_PIN_7
@@ -101,8 +99,8 @@ void Error_Handler(void);
 #define TCK_GPIO_Port GPIOA
 #define SevenSeg_LATCH_Pin GPIO_PIN_5
 #define SevenSeg_LATCH_GPIO_Port GPIOB
-#define LED_D4_PWM_Pin GPIO_PIN_6
-#define LED_D4_PWM_GPIO_Port GPIOB
+#define LED_D4_Pin GPIO_PIN_6
+#define LED_D4_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 #define BUFFER_SIZE 50
