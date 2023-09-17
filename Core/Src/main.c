@@ -217,6 +217,7 @@ int main(void)
   /* add threads, ... */
   osThreadNew(D2_Task, "D2_Task", &defaultTask_attributes);
 
+  osThreadNew(Display_Queue_Status_Task,"DisplayQueueStatus" , &defaultTask_attributes);
 
   /* USER CODE END RTOS_THREADS */
 
@@ -594,16 +595,16 @@ void Display_Queue_Status_Task(void *argument)
 		 *  If Full:  "FFFF"
 		 *  else Count
 		 */
-		queueCount = osMessageQueueGetCapacity (&ASCII_Char_QueueHandle);
+		queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
 		if (queueCount ==0)
 			{
 			/* Display Empty*/
-			MultiFunctionShield_Display(1000);
+			MultiFunctionShield_Display(10000);
 			}
-		else if (queueCount == queueSize)
+		else if (queueCount == (uint8_t)queueSize)
 			{
 			/* Display Full */
-			MultiFunctionShield_Display(9999);
+			MultiFunctionShield_Display(880);
 			}
 		else
 			{
