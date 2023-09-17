@@ -527,7 +527,8 @@ void Process_Queue_Task(void *argument)
 
 void Display_Queue_Status_Task(void *argument)
 	{
-	uint32_t queueCount;
+	int queueCount;
+	int queueSize = sizeof(ASCII_Char_QueueBuffer);
 	while (true)
 		{
 		/*
@@ -536,8 +537,21 @@ void Display_Queue_Status_Task(void *argument)
 		 *  else Count
 		 */
 		queueCount = osMessageQueueGetCapacity (&ASCII_Char_QueueHandle);
+		if (queueCount ==0)
+			{
+			/* Display Empty*/
+			MultiFunctionShield_Display(1000);
+			}
+		else if (queueCount == queueSize)
+			{
+			/* Display Full */
+			MultiFunctionShield_Display(9999);
+			}
+		else
+			{
+			MultiFunctionShield_Display((uint16_t) queueCount);
+			}
 
-		MultiFunctionShield_Display((uint16_t) queueCount);
 		osDelay(10);
 		}
 	}
