@@ -50,7 +50,6 @@ TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim17;
 
 UART_HandleTypeDef huart2;
-
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -79,6 +78,8 @@ const osThreadAttr_t bigStackTask_attributes = {
 
 /* Here are pointers to the tasks so I can suspend/resume */
 
+osThreadId_t Display_Queue_Status_Task_Handle;
+osThreadId_t Process_Queue_Task_Handle;
 
 /* USER CODE END PV */
 
@@ -88,15 +89,15 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM17_Init(void);
 static void MX_TIM4_Init(void);
+
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
+void Process_Queue_Task(void *argument);
+void Display_Queue_Status_Task(void *argument);
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 void D2_Task(void *argument);
-void PWM_Brightness_Task(void *argument);
-void Sample_Print_POT_ADC_Task();
-void DAC_Cycle_Task();
 // void Read_and_Transmit_Task();
 // void Receive_and_Print_Task();
 
@@ -189,6 +190,8 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  Process_Queue_Task_Handle = osThreadNew(Process_Queue_Task, "Process_Queue", &defaultTask_attributes);
+  Display_Queue_Status_Task_Handle = osThreadNew(Display_Queue_Status_Task, "Display_Queue", &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -500,6 +503,44 @@ void D2_Task(void *argument)
 		}
 	}
 
+void Process_Queue_Task(void *argument)
+	{
+	/*
+	 *
+	 * 1.) Display the Queue Status on the SevenSeg.
+	 * 		If full, display:  "FFFF"
+	 *		Otherwise display the queue count
+	 *
+	 * 2.) The QueThis task looks at the queue every time the semaphore is granted.
+	 *
+	 * it's read and printed.
+	 * If the
+	 */
+	while(true)
+		{
+
+		}
+
+
+	}
+
+
+void Display_Queue_Status_Task(void *argument)
+	{
+	uint32_t queueCount;
+	while (true)
+		{
+		/*
+		 *  If Empty: "EEEE"
+		 *  If Full:  "FFFF"
+		 *  else Count
+		 */
+		queueCount = osMessageQueueGetCapacity (&ASCII_Char_QueueHandle);
+
+		MultiFunctionShield_Display((uint16_t) queueCount);
+		osDelay(10);
+		}
+	}
 
 void Read_and_Transmit_Task()
 	{
