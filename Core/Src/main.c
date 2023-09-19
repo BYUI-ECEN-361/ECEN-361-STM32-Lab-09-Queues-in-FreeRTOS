@@ -24,8 +24,11 @@
 /* USER CODE BEGIN Includes */
 #include "MultiFunctionShield.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <ctype.h>
+
 
 /* USER CODE END Includes */
 
@@ -61,7 +64,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* Definitions for ASCII_Char_Queue */
 osMessageQueueId_t ASCII_Char_QueueHandle;
-uint8_t ASCII_Char_QueueBuffer[ 16 * sizeof( uint8_t ) ];
+uint8_t ASCII_Char_QueueBuffer[ QUEUE_SIZE * sizeof( uint8_t ) ];
 osStaticMessageQDef_t ASCII_Char_QueueControlBlock;
 const osMessageQueueAttr_t ASCII_Char_Queue_attributes = {
   .name = "ASCII_Char_Queue",
@@ -119,8 +122,21 @@ void D2_Task(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 /*** Globals *********/
+#define QUEUE_SIZE 50
 uint8_t RX_Buffer[BUFFER_SIZE] = {0};
 uint8_t recvd_data; // byte in from USART
+
+
+char get_random_char(int bottom,int top)
+	{
+	uint8_t rand_char;
+	rand_char =  rand() % (top-bottom);
+	/* the rand is in the range, so index it from the bottom */
+	return rand_char + bottom;
+
+	}
+
+
 
 /* USER CODE END 0 */
 
@@ -167,6 +183,8 @@ int main(void)
   MultiFunctionShield_Clear();								// Clear the 7-seg display
   Clear_LEDs();												// Clear the lights
   printf("\033\143");
+  printf("\033[6;3HHello\r\n");
+  printf("\033\143");
   printf("Welcome to ECEN-361 Lab-07\n\r\n\r");
 	HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 /**
@@ -203,7 +221,7 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of ASCII_Char_Queue */
-  ASCII_Char_QueueHandle = osMessageQueueNew (16, sizeof(uint8_t), &ASCII_Char_Queue_attributes);
+  ASCII_Char_QueueHandle = osMessageQueueNew (QUEUE_SIZE, sizeof(uint8_t), &ASCII_Char_Queue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -577,11 +595,30 @@ void Process_Queue_Task(void *argument)
 	 */
 	while(true)
 		{
-
 		}
-
-
 	}
+
+void Peek_the_Queue( void *pvParameters )
+	{
+   pcRxedMessage now points to the struct AMessage variable posted
+struct AMessage *pxRxedMessage;
+   if( xQueue != 0 )
+   {
+       // Peek a message on the created queue.  Block for 10 ticks if a
+       // message is not immediately available.
+       if( xQueuePeek( xQueue, &( pxRxedMessage ), ( TickType_t ) 10 ) )
+       {
+           // pcRxedMessage now points to the struct AMessage variable posted
+           // by vATask, but the item still remains on the queue.
+       }
+   }
+
+   // ... Rest of task code.
+}
+
+
+
+
 
 
 void Display_Queue_Status_Task(void *argument)
@@ -647,8 +684,6 @@ void Read_and_Transmit_Task()
 		HAL_UART_Transmit(&huart2, sndmsg_ptr, 13, HAL_MAX_DELAY);
 		//HAL_UART_Transmit(&huart2, receive_buffer_ptr, bytes_in, HAL_MAX_DELAY);
 		HAL_UART_Transmit(&huart2, RX_Buffer, bytes_in, HAL_MAX_DELAY);
-		// Now send it from the SPI Master (SPI_1) -> SPI Slave (SPI_2)
-		// Turn on the ChipEnable (SPI1_NSS -- active low)
 
 
 	}
@@ -740,10 +775,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	{
+	char myrand ;
+	char upper;
 	if (huart == &huart2 )
 		{
-		HAL_UART_Transmit(&huart2, &recvd_data , 1, HAL_MAX_DELAY);  //echo each one as it's typed
-		osMessageQueuePut(ASCII_Char_QueueHandle, &recvd_data, 100, 0U);
+		upper = toupper(recvd_data);
+		//HAL_UART_Transmit(&huart2, &recvd_data , 1, HAL_MAX_DELAY);  //echo each one as it's typed
+		HAL_UART_Transmit(&huart2, &upper , 1, HAL_MAX_DELAY);  //echo each one as it's typed
+		myrand =get_random_char('a','z');
+		// printf("\n\r\t[%c]\n\r",myrand);
+		osMessageQueuePut(ASCII_Char_QueueHandle, &upper, 100, 0U);
 		HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 		// USART_ClearITPendingBit(&huart2, USART_IT);
 		}
