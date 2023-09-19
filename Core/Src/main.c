@@ -66,7 +66,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* Definitions for ASCII_Char_Queue */
 osMessageQueueId_t ASCII_Char_QueueHandle;
-uint8_t ASCII_Char_QueueBuffer[ QUEUE_SIZE * sizeof( uint8_t ) ];
+uint8_t ASCII_Char_QueueBuffer[ 50 * sizeof( uint8_t ) ];
 osStaticMessageQDef_t ASCII_Char_QueueControlBlock;
 const osMessageQueueAttr_t ASCII_Char_Queue_attributes = {
   .name = "ASCII_Char_Queue",
@@ -79,6 +79,11 @@ const osMessageQueueAttr_t ASCII_Char_Queue_attributes = {
 osTimerId_t ProcessQueueTimerHandle;
 const osTimerAttr_t ProcessQueueTimer_attributes = {
   .name = "ProcessQueueTimer"
+};
+/* Definitions for RandomSymbolTimer */
+osTimerId_t RandomSymbolTimerHandle;
+const osTimerAttr_t RandomSymbolTimer_attributes = {
+  .name = "RandomSymbolTimer"
 };
 /* Definitions for ProcessSemaphore */
 osSemaphoreId_t ProcessSemaphoreHandle;
@@ -109,6 +114,7 @@ static void MX_TIM4_Init(void);
 static void MX_TIM7_Init(void);
 void StartDefaultTask(void *argument);
 void PQTimer_CB(void *argument);
+void Add_Random_Symbols_to_Queue(void *argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -126,7 +132,7 @@ void D2_Task(void *argument);
 /*** Globals *********/
 uint8_t RX_Buffer[BUFFER_SIZE] = {0};
 uint8_t recvd_data; // byte in from USART
-
+int Random_Symbol_Timer_Speed = 4000;  /* Start with 4-second */
 
 char get_random_char(int bottom,int top)
 	{
@@ -187,7 +193,7 @@ int main(void)
   printf("\033[6;3HHello\r\n");
   printf("\033\143");
   printf("Welcome to ECEN-361 Lab-07\n\r\n\r");
-	HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
+  HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 /**
  * Note that Timer-1 Channel 1 goes to our MultiBoard D3, and it's Negative True output
  *
@@ -216,13 +222,20 @@ int main(void)
   /* creation of ProcessQueueTimer */
   ProcessQueueTimerHandle = osTimerNew(PQTimer_CB, osTimerPeriodic, NULL, &ProcessQueueTimer_attributes);
 
+  /* creation of RandomSymbolTimer */
+  RandomSymbolTimerHandle = osTimerNew(Add_Random_Symbols_to_Queue, osTimerOnce, NULL, &RandomSymbolTimer_attributes);
+
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
+
+  /** Start sending random symbols **/
+  osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
   /* creation of ASCII_Char_Queue */
-  ASCII_Char_QueueHandle = osMessageQueueNew (QUEUE_SIZE, sizeof(uint8_t), &ASCII_Char_Queue_attributes);
+  ASCII_Char_QueueHandle = osMessageQueueNew (50, sizeof(uint8_t), &ASCII_Char_Queue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -743,6 +756,25 @@ void PQTimer_CB(void *argument)
   /* USER CODE END PQTimer_CB */
 }
 
+/* Add_Random_Symbols_to_Queue function */
+void Add_Random_Symbols_to_Queue(void *argument)
+{
+  /* USER CODE BEGIN Add_Random_Symbols_to_Queue */
+  /* This is the callback for the Software Timer:   */
+	char rand_sym ;
+	rand_sym = get_random_char('!','/');
+	if (osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U) == osOK)
+		{
+		/* Show it and start another */
+		HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
+		osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+		}
+
+		// If the queue is full, don't restart the timer
+
+  /* USER CODE END Add_Random_Symbols_to_Queue */
+}
+
 /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM2 interrupt took place, inside
@@ -765,22 +797,28 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /****  Character received from UART ****/
   //UART 2 receive complete callback
 
+void Add_Random_Characters_toQueue()
+	{
+	}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	{
 	if (huart == &huart2 )
 		{
-		char myrand ;
 		uint8_t upper;
 		upper = toupper(recvd_data);
 		//HAL_UART_Transmit(&huart2, &recvd_data , 1, HAL_MAX_DELAY);  //echo each one as it's typed
 		HAL_UART_Transmit(&huart2, &upper ,1, HAL_MAX_DELAY);  //echo each one as it's typed
-		myrand = get_random_char('a','z');
-		printf("\n\r\t[%c]\n\r",myrand);
+		// char myrand = get_random_char('a','z');
+		//printf("\n\r\t[%c]\n\r",myrand);
+		// Get cursor position
+		// printf('\033[6n');
 		osMessageQueuePut(ASCII_Char_QueueHandle, &upper, 100, 0U);
-		Peek_the_Queue(ASCII_Char_QueueHandle);
+		// Peek_the_Queue(ASCII_Char_QueueHandle);
 		HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 		// USART_ClearITPendingBit(&huart2, USART_IT);
 		}
+
 
 
   /* USER CODE END Callback 1 */
