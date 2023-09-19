@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <ctype.h>
+#include "queue.h"
 
 
 /* USER CODE END Includes */
@@ -40,6 +41,7 @@ typedef StaticQueue_t osStaticMessageQDef_t;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define QUEUE_SIZE 50
 
 /* USER CODE END PD */
 
@@ -122,7 +124,6 @@ void D2_Task(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 /*** Globals *********/
-#define QUEUE_SIZE 50
 uint8_t RX_Buffer[BUFFER_SIZE] = {0};
 uint8_t recvd_data; // byte in from USART
 
@@ -598,23 +599,14 @@ void Process_Queue_Task(void *argument)
 		}
 	}
 
-void Peek_the_Queue( void *pvParameters )
+void Peek_the_Queue( osMessageQueueId_t theQueue)
 	{
-   pcRxedMessage now points to the struct AMessage variable posted
-struct AMessage *pxRxedMessage;
-   if( xQueue != 0 )
-   {
-       // Peek a message on the created queue.  Block for 10 ticks if a
-       // message is not immediately available.
-       if( xQueuePeek( xQueue, &( pxRxedMessage ), ( TickType_t ) 10 ) )
-       {
-           // pcRxedMessage now points to the struct AMessage variable posted
-           // by vATask, but the item still remains on the queue.
-       }
-   }
+	char *peekedQueue[QUEUE_SIZE];
+	for (int i=0; (i<QUEUE_SIZE) ; i++)
+		{peekedQueue[i] = 0;}
+	xQueuePeekFromISR( theQueue, &peekedQueue );
 
-   // ... Rest of task code.
-}
+   }
 
 
 
@@ -775,16 +767,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	{
-	char myrand ;
-	char upper;
 	if (huart == &huart2 )
 		{
+		char myrand ;
+		uint8_t upper;
 		upper = toupper(recvd_data);
 		//HAL_UART_Transmit(&huart2, &recvd_data , 1, HAL_MAX_DELAY);  //echo each one as it's typed
-		HAL_UART_Transmit(&huart2, &upper , 1, HAL_MAX_DELAY);  //echo each one as it's typed
-		myrand =get_random_char('a','z');
-		// printf("\n\r\t[%c]\n\r",myrand);
+		HAL_UART_Transmit(&huart2, &upper ,1, HAL_MAX_DELAY);  //echo each one as it's typed
+		myrand = get_random_char('a','z');
+		printf("\n\r\t[%c]\n\r",myrand);
 		osMessageQueuePut(ASCII_Char_QueueHandle, &upper, 100, 0U);
+		Peek_the_Queue(ASCII_Char_QueueHandle);
 		HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 		// USART_ClearITPendingBit(&huart2, USART_IT);
 		}
