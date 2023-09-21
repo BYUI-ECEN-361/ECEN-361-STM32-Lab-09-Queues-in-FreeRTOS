@@ -105,6 +105,11 @@ osSemaphoreId_t Issue_lowercases_SemaphoreHandle;
 const osSemaphoreAttr_t Issue_lowercases_Semaphore_attributes = {
   .name = "Issue_lowercases_Semaphore"
 };
+/* Definitions for ProcessButton */
+osSemaphoreId_t ProcessButtonHandle;
+const osSemaphoreAttr_t ProcessButton_attributes = {
+  .name = "ProcessButton"
+};
 /* USER CODE BEGIN PV */
 
 const osThreadAttr_t bigStackTask_attributes = {
@@ -137,6 +142,7 @@ void Add_Random_lowercase_to_Queue(void *argument);
 void Peek_the_Queue_Task(void *argument);
 void Process_Queue_Task(void *argument);
 void Display_Queue_Status_Task(void *argument);
+void process_button_Task(void *argument);
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 void D2_Task(void *argument);
 // void Read_and_Transmit_Task();
@@ -154,6 +160,7 @@ int Random_lowercase_Timer_Speed = 400000;  /* Start with 7/10 second */
 /*Switch 3 */
 bool resetQueue=false;
 osStatus_t timer_status;
+uint8_t button_pushed = 0; // button to go to semaphore process
 
 char get_random_char(int bottom,int top)
 	{
@@ -181,7 +188,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
- HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
   // HAL_GPIO_WritePin(PWM_LED_GPIO_Port, PWM_LED_Pin, 1);
@@ -243,6 +250,9 @@ int main(void)
   /* creation of Issue_lowercases_Semaphore */
   Issue_lowercases_SemaphoreHandle = osSemaphoreNew(1, 1, &Issue_lowercases_Semaphore_attributes);
 
+  /* creation of ProcessButton */
+  ProcessButtonHandle = osSemaphoreNew(1, 1, &ProcessButton_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
@@ -285,6 +295,7 @@ int main(void)
 
   osThreadNew(Display_Queue_Status_Task,"DisplayQueueStatus" , &defaultTask_attributes);
   defaultTaskHandle = osThreadNew(Peek_the_Queue_Task, NULL, &defaultTask_attributes);
+  osThreadNew(process_button_Task,"Process Button Task" , &defaultTask_attributes);
 
   /* USER CODE END RTOS_THREADS */
 
@@ -759,40 +770,65 @@ PUTCHAR_PROTOTYPE
 }
 
 
+void process_button_Task(void *arguments)
+	{
+	osStatus stat ;
+	/* The interrupts just flag the semaphore.  THis is because you cant start timers from
+	 * an ISR
+	 */
+	while(true)
+		{
+		stat = osSemaphoreAcquire (ProcessButtonHandle, 0);
+		switch(button_pushed)
+			{
+			case 1:
+				/* Button_1  is START/STOP the random symbols (! .... 0)*/
+				 bool lower_running = osTimerIsRunning(lowercaseTimerHandle);
+				 if (osTimerIsRunning(lowercaseTimerHandle))
+					timer_status = osTimerStop(lowercaseTimerHandle);
+				else
+					timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+				break;
+			case 2:
+				/* Button_2  is START/STOP the random symbols (! .... 0)*/
+				 bool sym_running = osTimerIsRunning(RandomSymbolTimerHandle);
+				 if (osTimerIsRunning(RandomSymbolTimerHandle))
+					timer_status = osTimerStop(RandomSymbolTimerHandle);
+				else
+					timer_status = osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+				break;
+			case 3:
+				/* Resets the Queue */
+				resetQueue = true;   // But it can't be done inside an ISR
+				break;
+			default: __NOP();
+			}
+		stat = osSemaphoreRelease (ProcessButtonHandle);
+		}
+	}
+
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	{
 	// All three buttons generate GPIO  interrupts
-	osStatus_t timer_status;
 	switch(GPIO_Pin)
-	{
-	case Button_1_Pin:
-		/* Button_1  is START/STOP the random symbols (! .... 0)*/
-	 	bool lower_running = osTimerIsRunning(lowercaseTimerHandle);
-	 	if (osTimerIsRunning(lowercaseTimerHandle))
-			timer_status = osTimerStop(lowercaseTimerHandle);
-		else
-			timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
-		break;
-	case Button_2_Pin:
-		/* Button_2  is START/STOP the random symbols (! .... 0)*/
-	 	bool sym_running = osTimerIsRunning(RandomSymbolTimerHandle);
-	 	if (osTimerIsRunning(RandomSymbolTimerHandle))
-			timer_status = osTimerStop(RandomSymbolTimerHandle);
-		else
-			timer_status = osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
-		break;
-
-		break;
-
-
-	case Button_3_Pin:
-		/* Resets the Queue */
-       resetQueue = true;   // But it can't be done inside an ISR
-		break;
-	default: __NOP();
+		{
+		case Button_1_Pin:
+			button_pushed = 1;
+			break;
+		case Button_2_Pin:
+			button_pushed = 2;
+			break;
+		case Button_3_Pin:
+			button_pushed = 3;
+			break;
+		default: __NOP();
+		}
+	osSemaphoreRelease (ProcessButtonHandle);
 	HAL_Delay(70);  //* Time to make sure the switch is debounced
+	osSemaphoreAcquire (ProcessButtonHandle, 100);
 	}
-}
+
 
 
 /* USER CODE END 4 */
