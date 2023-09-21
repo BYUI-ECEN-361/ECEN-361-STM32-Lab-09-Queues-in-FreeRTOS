@@ -89,6 +89,7 @@ void Error_Handler(void);
 #define LED_D3_GPIO_Port GPIOA
 #define Button_3_Pin GPIO_PIN_0
 #define Button_3_GPIO_Port GPIOB
+#define Button_3_EXTI_IRQn EXTI0_IRQn
 #define SevenSeg_CLK_Pin GPIO_PIN_8
 #define SevenSeg_CLK_GPIO_Port GPIOA
 #define SevenSeg_DATA_Pin GPIO_PIN_9

@@ -85,10 +85,25 @@ osTimerId_t RandomSymbolTimerHandle;
 const osTimerAttr_t RandomSymbolTimer_attributes = {
   .name = "RandomSymbolTimer"
 };
+/* Definitions for lowercaseTimer */
+osTimerId_t lowercaseTimerHandle;
+const osTimerAttr_t lowercaseTimer_attributes = {
+  .name = "lowercaseTimer"
+};
 /* Definitions for ProcessSemaphore */
 osSemaphoreId_t ProcessSemaphoreHandle;
 const osSemaphoreAttr_t ProcessSemaphore_attributes = {
   .name = "ProcessSemaphore"
+};
+/* Definitions for Issue_Symbols_Semaphore */
+osSemaphoreId_t Issue_Symbols_SemaphoreHandle;
+const osSemaphoreAttr_t Issue_Symbols_Semaphore_attributes = {
+  .name = "Issue_Symbols_Semaphore"
+};
+/* Definitions for Issue_lowercases_Semaphore */
+osSemaphoreId_t Issue_lowercases_SemaphoreHandle;
+const osSemaphoreAttr_t Issue_lowercases_Semaphore_attributes = {
+  .name = "Issue_lowercases_Semaphore"
 };
 /* USER CODE BEGIN PV */
 
@@ -115,9 +130,11 @@ static void MX_TIM7_Init(void);
 void StartDefaultTask(void *argument);
 void PQTimer_CB(void *argument);
 void Add_Random_Symbols_to_Queue(void *argument);
+void Add_Random_lowercase_to_Queue(void *argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
+void Peek_the_Queue_Task(void *argument);
 void Process_Queue_Task(void *argument);
 void Display_Queue_Status_Task(void *argument);
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
@@ -132,7 +149,10 @@ void D2_Task(void *argument);
 /*** Globals *********/
 uint8_t RX_Buffer[BUFFER_SIZE] = {0};
 uint8_t recvd_data; // byte in from USART
-int Random_Symbol_Timer_Speed = 4000;  /* Start with 4-second */
+int Random_Symbol_Timer_Speed = 2000;  /* Start with 4-second */
+int Random_lowercase_Timer_Speed = 4000;  /* Start with 7/10 second */
+/*Switch 3 */
+bool resetQueue=false;
 
 char get_random_char(int bottom,int top)
 	{
@@ -160,7 +180,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+ HAL_Init();
 
   /* USER CODE BEGIN Init */
   // HAL_GPIO_WritePin(PWM_LED_GPIO_Port, PWM_LED_Pin, 1);
@@ -193,6 +213,8 @@ int main(void)
   printf("\033[6;3HHello\r\n");
   printf("\033\143");
   printf("Welcome to ECEN-361 Lab-07\n\r\n\r");
+  printf("QUEUE   0        1         2         3         4         5\n\r");
+  printf("        12345678901234567890123456789012345678901234567890\n\r");
   HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 /**
  * Note that Timer-1 Channel 1 goes to our MultiBoard D3, and it's Negative True output
@@ -214,6 +236,12 @@ int main(void)
   /* creation of ProcessSemaphore */
   ProcessSemaphoreHandle = osSemaphoreNew(1, 1, &ProcessSemaphore_attributes);
 
+  /* creation of Issue_Symbols_Semaphore */
+  Issue_Symbols_SemaphoreHandle = osSemaphoreNew(1, 1, &Issue_Symbols_Semaphore_attributes);
+
+  /* creation of Issue_lowercases_Semaphore */
+  Issue_lowercases_SemaphoreHandle = osSemaphoreNew(1, 1, &Issue_lowercases_Semaphore_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
@@ -223,13 +251,17 @@ int main(void)
   ProcessQueueTimerHandle = osTimerNew(PQTimer_CB, osTimerPeriodic, NULL, &ProcessQueueTimer_attributes);
 
   /* creation of RandomSymbolTimer */
-  RandomSymbolTimerHandle = osTimerNew(Add_Random_Symbols_to_Queue, osTimerOnce, NULL, &RandomSymbolTimer_attributes);
+  RandomSymbolTimerHandle = osTimerNew(Add_Random_Symbols_to_Queue, osTimerPeriodic, NULL, &RandomSymbolTimer_attributes);
+
+  /* creation of lowercaseTimer */
+  lowercaseTimerHandle = osTimerNew(Add_Random_lowercase_to_Queue, osTimerPeriodic, NULL, &lowercaseTimer_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
 
   /** Start sending random symbols **/
-  osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+  // osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+  // osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
 
   /* USER CODE END RTOS_TIMERS */
 
@@ -239,6 +271,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -250,6 +283,7 @@ int main(void)
   osThreadNew(D2_Task, "D2_Task", &defaultTask_attributes);
 
   osThreadNew(Display_Queue_Status_Task,"DisplayQueueStatus" , &defaultTask_attributes);
+  defaultTaskHandle = osThreadNew(Peek_the_Queue_Task, NULL, &defaultTask_attributes);
 
   /* USER CODE END RTOS_THREADS */
 
@@ -524,17 +558,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(LM35_IN_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Button_1_Pin */
-  GPIO_InitStruct.Pin = Button_1_Pin;
+  /*Configure GPIO pins : Button_1_Pin Button_2_Pin */
+  GPIO_InitStruct.Pin = Button_1_Pin|Button_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Button_1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : Button_2_Pin */
-  GPIO_InitStruct.Pin = Button_2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(Button_2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_D1_Pin LED_D3_Pin SevenSeg_CLK_Pin SevenSeg_DATA_Pin */
   GPIO_InitStruct.Pin = LED_D1_Pin|LED_D3_Pin|SevenSeg_CLK_Pin|SevenSeg_DATA_Pin;
@@ -552,7 +580,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : Button_3_Pin */
   GPIO_InitStruct.Pin = Button_3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(Button_3_GPIO_Port, &GPIO_InitStruct);
 
@@ -564,6 +592,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(SevenSeg_LATCH_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
   HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
@@ -612,14 +643,31 @@ void Process_Queue_Task(void *argument)
 		}
 	}
 
-void Peek_the_Queue( osMessageQueueId_t theQueue)
+void Peek_the_Queue_Task(void *argument)
 	{
-	char *peekedQueue[QUEUE_SIZE];
-	for (int i=0; (i<QUEUE_SIZE) ; i++)
-		{peekedQueue[i] = 0;}
-	xQueuePeekFromISR( theQueue, &peekedQueue );
+	int lastqueueCount = 0;
+	char peekedQueue[QUEUE_SIZE];
+	for (int i=0; (i<QUEUE_SIZE) ; i++) {peekedQueue[i] = 0;}
+    while (true)
+		{
+    	if (xQueueIsQueueEmptyFromISR(ASCII_Char_QueueHandle) == false)
+			{
+    		/* Now just print it if the count changes*/
 
-   }
+			int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
+			if (queueCount !=lastqueueCount)
+				{ /* then show new stuff */
+				lastqueueCount = queueCount;
+				if (xQueuePeekFromISR(ASCII_Char_QueueHandle, peekedQueue ) == pdFAIL)
+					printf("Queue Peek Failed \n\r");
+			/* Now display the Queue */
+			// srand((unsigned) something
+				printf("QUEUE   %s\n\r",peekedQueue);
+				}
+			}
+	   }
+		osDelay(1000);
+	}
 
 
 
@@ -716,11 +764,28 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	switch(GPIO_Pin)
 	{
 	case Button_1_Pin:
-		/* Button_1 */
-	case Button_2_Pin:
-		/* Button_2  */
+		/* Button_1  is START/STOP the random symbols (! .... 0)*/
+	 	bool lower_running = osTimerIsRunning(lowercaseTimerHandle);
+	 	if (osTimerIsRunning(lowercaseTimerHandle))
+			osTimerStop(lowercaseTimerHandle);
+		else
+			osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
 		break;
+	case Button_2_Pin:
+		/* Button_2  is START/STOP the random symbols (! .... 0)*/
+	 	bool sym_running = osTimerIsRunning(RandomSymbolTimerHandle);
+	 	if (osTimerIsRunning(RandomSymbolTimerHandle))
+			osTimerStop(RandomSymbolTimerHandle);
+		else
+			osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+		break;
+
+		break;
+
+
 	case Button_3_Pin:
+		/* Resets the Queue */
+       resetQueue = true;   // But it can't be done inside an ISR
 		break;
 	default: __NOP();
 	HAL_Delay(70);  //* Time to make sure the switch is debounced
@@ -743,7 +808,14 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(10);
+    if (resetQueue)
+		{
+		osMessageQueueReset (ASCII_Char_QueueHandle);
+		// xQueueGenericReset( ASCII_Char_QueueHandle, xNewQueue )
+		resetQueue = false;
+		}
+
   }
   /* USER CODE END 5 */
 }
@@ -752,6 +824,7 @@ void StartDefaultTask(void *argument)
 void PQTimer_CB(void *argument)
 {
   /* USER CODE BEGIN PQTimer_CB */
+	/* This timer is the  */
 
   /* USER CODE END PQTimer_CB */
 }
@@ -765,14 +838,30 @@ void Add_Random_Symbols_to_Queue(void *argument)
 	rand_sym = get_random_char('!','/');
 	if (osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U) == osOK)
 		{
-		/* Show it and start another */
-		HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
+	/* Show it and start another */
+	// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
+	// Peek_the_Queue(ASCII_Char_QueueHandle);
 		osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
 		}
 
-		// If the queue is full, don't restart the timer
 
   /* USER CODE END Add_Random_Symbols_to_Queue */
+}
+
+/* Add_Random_lowercase_to_Queue function */
+void Add_Random_lowercase_to_Queue(void *argument)
+{
+  /* USER CODE BEGIN Add_Random_lowercase_to_Queue */
+		char rand_sym ;
+		rand_sym = get_random_char('a','z');
+		if (osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U) == osOK)
+			{
+			/* Show it and start another */
+			// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
+		// Peek_the_Queue(ASCII_Char_QueueHandle);
+			}
+
+  /* USER CODE END Add_Random_lowercase_to_Queue */
 }
 
 /**
@@ -797,18 +886,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /****  Character received from UART ****/
   //UART 2 receive complete callback
 
-void Add_Random_Characters_toQueue()
-	{
-	}
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	{
 	if (huart == &huart2 )
 		{
 		uint8_t upper;
 		upper = toupper(recvd_data);
-		//HAL_UART_Transmit(&huart2, &recvd_data , 1, HAL_MAX_DELAY);  //echo each one as it's typed
-		HAL_UART_Transmit(&huart2, &upper ,1, HAL_MAX_DELAY);  //echo each one as it's typed
+
+		// HAL_UART_Transmit(&huart2, &upper ,1, HAL_MAX_DELAY);  //echo each one as it's typed
+
 		// char myrand = get_random_char('a','z');
 		//printf("\n\r\t[%c]\n\r",myrand);
 		// Get cursor position
