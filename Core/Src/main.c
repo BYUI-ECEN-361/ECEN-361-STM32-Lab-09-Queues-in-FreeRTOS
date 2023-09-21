@@ -149,10 +149,11 @@ void D2_Task(void *argument);
 /*** Globals *********/
 uint8_t RX_Buffer[BUFFER_SIZE] = {0};
 uint8_t recvd_data; // byte in from USART
-int Random_Symbol_Timer_Speed = 2000;  /* Start with 4-second */
-int Random_lowercase_Timer_Speed = 4000;  /* Start with 7/10 second */
+int Random_Symbol_Timer_Speed = 200000;  /* Start with 4-second */
+int Random_lowercase_Timer_Speed = 400000;  /* Start with 7/10 second */
 /*Switch 3 */
 bool resetQueue=false;
+osStatus_t timer_status;
 
 char get_random_char(int bottom,int top)
 	{
@@ -260,8 +261,8 @@ int main(void)
   /* start timers, add new ones, ... */
 
   /** Start sending random symbols **/
-  // osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
-  // osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+  timer_status = osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+  timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
 
   /* USER CODE END RTOS_TIMERS */
 
@@ -761,23 +762,24 @@ PUTCHAR_PROTOTYPE
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	{
 	// All three buttons generate GPIO  interrupts
+	osStatus_t timer_status;
 	switch(GPIO_Pin)
 	{
 	case Button_1_Pin:
 		/* Button_1  is START/STOP the random symbols (! .... 0)*/
 	 	bool lower_running = osTimerIsRunning(lowercaseTimerHandle);
 	 	if (osTimerIsRunning(lowercaseTimerHandle))
-			osTimerStop(lowercaseTimerHandle);
+			timer_status = osTimerStop(lowercaseTimerHandle);
 		else
-			osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+			timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
 		break;
 	case Button_2_Pin:
 		/* Button_2  is START/STOP the random symbols (! .... 0)*/
 	 	bool sym_running = osTimerIsRunning(RandomSymbolTimerHandle);
 	 	if (osTimerIsRunning(RandomSymbolTimerHandle))
-			osTimerStop(RandomSymbolTimerHandle);
+			timer_status = osTimerStop(RandomSymbolTimerHandle);
 		else
-			osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+			timer_status = osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
 		break;
 
 		break;
@@ -841,7 +843,7 @@ void Add_Random_Symbols_to_Queue(void *argument)
 	/* Show it and start another */
 	// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
 	// Peek_the_Queue(ASCII_Char_QueueHandle);
-		osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+		// osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
 		}
 
 
