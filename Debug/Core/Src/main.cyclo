@@ -13,7 +13,7 @@
 ../Core/Src/main.c:720:6:Read_and_Transmit_Task	3
 ../Core/Src/main.c:763:1:__io_putchar	1
 ../Core/Src/main.c:773:6:process_button_Task	7
-../Core/Src/main.c:811:6:HAL_GPIO_EXTI_Callback	5
+../Core/Src/main.c:813:6:HAL_GPIO_EXTI_Callback	5
 ../Core/Src/main.c:843:6:StartDefaultTask	2
 ../Core/Src/main.c:862:6:PQTimer_CB	1
 ../Core/Src/main.c:871:6:Add_Random_Symbols_to_Queue	1

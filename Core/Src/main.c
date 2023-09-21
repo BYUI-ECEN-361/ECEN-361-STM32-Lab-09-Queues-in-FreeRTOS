@@ -778,9 +778,11 @@ void process_button_Task(void *arguments)
 	 */
 	while(true)
 		{
-		stat = osSemaphoreAcquire (ProcessButtonHandle, 0);
 		switch(button_pushed)
 			{
+			case 0:
+				osDelay(50);
+			break;
 			case 1:
 				/* Button_1  is START/STOP the random symbols (! .... 0)*/
 				 bool lower_running = osTimerIsRunning(lowercaseTimerHandle);
@@ -788,7 +790,8 @@ void process_button_Task(void *arguments)
 					timer_status = osTimerStop(lowercaseTimerHandle);
 				else
 					timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
-				break;
+			button_pushed = 0;
+			break;
 			case 2:
 				/* Button_2  is START/STOP the random symbols (! .... 0)*/
 				 bool sym_running = osTimerIsRunning(RandomSymbolTimerHandle);
@@ -803,7 +806,6 @@ void process_button_Task(void *arguments)
 				break;
 			default: __NOP();
 			}
-		stat = osSemaphoreRelease (ProcessButtonHandle);
 		}
 	}
 
@@ -824,9 +826,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			break;
 		default: __NOP();
 		}
-	osSemaphoreRelease (ProcessButtonHandle);
 	HAL_Delay(70);  //* Time to make sure the switch is debounced
-	osSemaphoreAcquire (ProcessButtonHandle, 100);
 	}
 
 
