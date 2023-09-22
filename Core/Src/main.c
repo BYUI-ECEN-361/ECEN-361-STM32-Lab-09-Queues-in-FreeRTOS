@@ -764,10 +764,10 @@ void process_button_Task(void *arguments)
 					timer_status = osTimerStop(lowercaseTimerHandle);
 				else
 					{
-					HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 					timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
 					}
 			button_pushed = 0;
+			HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 			break;
 			case 2:
 				/* Button_2  is START/STOP the random symbols (! .... 0)*/
@@ -775,10 +775,10 @@ void process_button_Task(void *arguments)
 					timer_status = osTimerStop(RandomSymbolTimerHandle);
 				else
 					{
-					HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 					timer_status = osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
 					}
 			button_pushed = 0;
+			HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 			break;
 			case 3:
 				/* Resets the Queue */
@@ -834,6 +834,7 @@ void StartDefaultTask(void *argument)
     if (resetQueue)
 		{
 		osMessageQueueReset (ASCII_Char_QueueHandle);
+ printf("                                                            %c",'\r');
 		// xQueueGenericReset( ASCII_Char_QueueHandle, xNewQueue )
 		resetQueue = false;
 		}
