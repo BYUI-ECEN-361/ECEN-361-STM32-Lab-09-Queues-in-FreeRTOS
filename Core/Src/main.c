@@ -642,7 +642,9 @@ void Peek_the_Queue_Task(void *argument)
     	    char cr = '\r';
     	    int cptr = &cr;
     	    char space[8] = "        ";
+    	    char space50[50] = "                                                   ";
     	    int spaceptr = &space;
+    	    int space50ptr = &space50;
 			int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
 			if (queueCount !=lastqueueCount)
 				{ /* then show new stuff */
@@ -655,6 +657,7 @@ void Peek_the_Queue_Task(void *argument)
 					{
 					HAL_UART_Transmit(&huart2, (ASCII_Char_QueueBuffer+i), 1, HAL_MAX_DELAY);
 					}
+					HAL_UART_Transmit(&huart2, space50ptr, 50, HAL_MAX_DELAY);
 					HAL_UART_Transmit(&huart2, cptr, 1, HAL_MAX_DELAY);
 				}
 		osDelay(1);
@@ -783,6 +786,7 @@ void process_button_Task(void *arguments)
 			case 3:
 				/* Resets the Queue */
 				resetQueue = true;   // But it can't be done inside an ISR
+				 printf("%c                                                            %c",'\r','\r');
 				button_pushed = 0;
 			break;
 			}
