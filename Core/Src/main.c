@@ -35,7 +35,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 typedef StaticQueue_t osStaticMessageQDef_t;
-typedef StaticTimer_t osStaticTimerDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -83,19 +82,13 @@ const osTimerAttr_t ProcessQueueTimer_attributes = {
 };
 /* Definitions for RandomSymbolTimer */
 osTimerId_t RandomSymbolTimerHandle;
-osStaticTimerDef_t RandomSymbolTimerControlBlock;
 const osTimerAttr_t RandomSymbolTimer_attributes = {
-  .name = "RandomSymbolTimer",
-  .cb_mem = &RandomSymbolTimerControlBlock,
-  .cb_size = sizeof(RandomSymbolTimerControlBlock),
+  .name = "RandomSymbolTimer"
 };
 /* Definitions for lowercaseTimer */
 osTimerId_t lowercaseTimerHandle;
-osStaticTimerDef_t lowercaseTimerControlBlock;
 const osTimerAttr_t lowercaseTimer_attributes = {
-  .name = "lowercaseTimer",
-  .cb_mem = &lowercaseTimerControlBlock,
-  .cb_size = sizeof(lowercaseTimerControlBlock),
+  .name = "lowercaseTimer"
 };
 /* Definitions for ProcessSemaphore */
 osSemaphoreId_t ProcessSemaphoreHandle;
@@ -111,6 +104,12 @@ const osThreadAttr_t bigStackTask_attributes = {
 };
 
 /* Here are pointers to the tasks so I can suspend/resume */
+osThreadId_t bigTaskHandle;
+const osThreadAttr_t bigTask_attributes = {
+  .name = "bigTask",
+  .stack_size = 2048 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 
 osThreadId_t Display_Queue_Status_Task_Handle;
 osThreadId_t Process_Queue_Task_Handle;
@@ -183,10 +182,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  // HAL_GPIO_WritePin(PWM_LED_GPIO_Port, PWM_LED_Pin, 1);
-  // HAL_GPIO_WritePin(LED_D3_GPIO_Port,LED_D3_Pin,0);
-
-
 
   /* USER CODE END Init */
 
@@ -214,7 +209,7 @@ int main(void)
   printf("\033\143");
   printf("Welcome to ECEN-361 Lab-07\n\r\n\r");
   printf("QUEUE   0        1         2         3         4         5\n\r");
-  printf("        12345678901234567890123456789012345678901234567890\n\r");
+  printf("        12345678901234567890123456789012345678901234567890\n%c",'\r');
   HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 /**
  * Note that Timer-1 Channel 1 goes to our MultiBoard D3, and it's Negative True output
@@ -277,8 +272,8 @@ int main(void)
   osThreadNew(D2_Task, "D2_Task", &defaultTask_attributes);
 
   osThreadNew(Display_Queue_Status_Task,"DisplayQueueStatus" , &defaultTask_attributes);
-  defaultTaskHandle = osThreadNew(Peek_the_Queue_Task, NULL, &defaultTask_attributes);
-  osThreadNew(process_button_Task,"Process Button Task" , &defaultTask_attributes);
+  defaultTaskHandle = osThreadNew(Peek_the_Queue_Task, NULL, &bigTask_attributes);
+  osThreadNew(process_button_Task,"Process Button Task" , &bigTask_attributes);
 
   /* USER CODE END RTOS_THREADS */
 
@@ -641,23 +636,28 @@ void Process_Queue_Task(void *argument)
 void Peek_the_Queue_Task(void *argument)
 	{
 	int lastqueueCount = 0;
-	char peekedQueue[QUEUE_SIZE] = {0,};
-	void *Next;
-	Next = ASCII_Char_QueueHandle;
-	//int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
-	//for (int i=0; (i<QUEUE_SIZE) ; i++) {peekedQueue[i] = 0;}
     while (true)
 		{
+    	    int i;
+    	    char cr = '\r';
+    	    int cptr = &cr;
+    	    char space[8] = "        ";
+    	    int spaceptr = &space;
 			int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
 			if (queueCount !=lastqueueCount)
 				{ /* then show new stuff */
 				lastqueueCount = queueCount;
-				// xQueuePeek(ASCII_Char_QueueHandle, peekedQueue ,100000);
-			/* Now display the Queue */
-				// printf("QUEUE   %s\n\r",peekedQueue);
-				printf("QUEUE   %s%c",ASCII_Char_QueueBuffer,'\r');
+				/* Display the queue by just pointing directly at the buffer */
+				// printf("QUEUE   %s%c",ASCII_Char_QueueBuffer,'\r');
+				//printf("QUEUE   ");
+				HAL_UART_Transmit(&huart2, spaceptr, 8, HAL_MAX_DELAY);
+				for (i=0; (i<=queueCount); i++)
+					{
+					HAL_UART_Transmit(&huart2, (ASCII_Char_QueueBuffer+i), 1, HAL_MAX_DELAY);
+					}
+					HAL_UART_Transmit(&huart2, cptr, 1, HAL_MAX_DELAY);
 				}
-		osDelay(10);
+		osDelay(1);
 	   }
 	}
 
@@ -752,10 +752,6 @@ PUTCHAR_PROTOTYPE
 
 void process_button_Task(void *arguments)
 	{
-	osStatus stat ;
-	/* The interrupts just flag the semaphore.  THis is because you cant start timers from
-	 * an ISR
-	 */
 	while(true)
 		{
 		switch(button_pushed)
@@ -763,30 +759,34 @@ void process_button_Task(void *arguments)
 			case 0:
 				osDelay(1);
 			break;
-			case 1:
-				/* Button_1  is START/STOP the random symbols (! .... 0)*/
-				 bool lower_running = osTimerIsRunning(&lowercaseTimerHandle);
-				 if (osTimerIsRunning(&lowercaseTimerHandle))
+			case 1: /* Button_1  is START/STOP the random symbols (! .... 0)*/
+				 if (osTimerIsRunning(lowercaseTimerHandle))
 					timer_status = osTimerStop(lowercaseTimerHandle);
 				else
-					timer_status = osTimerStart(&lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+					{
+					HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+					timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+					}
 			button_pushed = 0;
 			break;
 			case 2:
 				/* Button_2  is START/STOP the random symbols (! .... 0)*/
-				 bool sym_running = osTimerIsRunning(RandomSymbolTimerHandle);
 				 if (osTimerIsRunning(RandomSymbolTimerHandle))
 					timer_status = osTimerStop(RandomSymbolTimerHandle);
 				else
+					{
+					HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 					timer_status = osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+					}
 			button_pushed = 0;
 			break;
 			case 3:
 				/* Resets the Queue */
 				resetQueue = true;   // But it can't be done inside an ISR
 				button_pushed = 0;
-				break;
+			break;
 			}
+		// osDelay(70);  //* Time to make sure the switch is debounced
 		}
 	}
 
@@ -797,17 +797,20 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	switch(GPIO_Pin)
 		{
 		case Button_1_Pin:
+			osTimerStop(lowercaseTimerHandle);
+			HAL_NVIC_DisableIRQ(EXTI1_IRQn);
 			button_pushed = 1;
 			break;
 		case Button_2_Pin:
+			osTimerStop(RandomSymbolTimerHandle);
+			HAL_NVIC_DisableIRQ(EXTI4_IRQn);
 			button_pushed = 2;
 			break;
 		case Button_3_Pin:
 			button_pushed = 3;
 			break;
-		default: __NOP();
 		}
-	// HAL_Delay(70);  //* Time to make sure the switch is debounced
+
 	}
 
 
