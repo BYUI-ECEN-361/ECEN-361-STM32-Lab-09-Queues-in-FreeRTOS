@@ -64,8 +64,8 @@ all: main-build
 main-build: ECEN-361-STM32-Lab-07-Queues-Solution.elf secondary-outputs
 
 # Tool invocations
-ECEN-361-STM32-Lab-07-Queues-Solution.elf ECEN-361-STM32-Lab-07-Queues-Solution.map: $(OBJS) $(USER_OBJS) /Users/lynnrwatson/Repositories/ECEN-361/Labs/ECEN-361-STM32-Lab-07-Queues-Solution/STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ECEN-361-STM32-Lab-07-Queues-Solution.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/Users/lynnrwatson/Repositories/ECEN-361/Labs/ECEN-361-STM32-Lab-07-Queues-Solution/STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ECEN-361-STM32-Lab-07-Queues-Solution.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+ECEN-361-STM32-Lab-07-Queues-Solution.elf ECEN-361-STM32-Lab-07-Queues-Solution.map: $(OBJS) $(USER_OBJS) C:\Users\lynn\Repositories\ECEN-361\ECEN-361-STM32-Lab-07-Queues-Solution\STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "ECEN-361-STM32-Lab-07-Queues-Solution.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\lynn\Repositories\ECEN-361\ECEN-361-STM32-Lab-07-Queues-Solution\STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ECEN-361-STM32-Lab-07-Queues-Solution.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

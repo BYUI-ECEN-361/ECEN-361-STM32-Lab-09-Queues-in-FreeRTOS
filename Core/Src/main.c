@@ -35,6 +35,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 typedef StaticQueue_t osStaticMessageQDef_t;
+typedef StaticTimer_t osStaticTimerDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -82,33 +83,24 @@ const osTimerAttr_t ProcessQueueTimer_attributes = {
 };
 /* Definitions for RandomSymbolTimer */
 osTimerId_t RandomSymbolTimerHandle;
+osStaticTimerDef_t RandomSymbolTimerControlBlock;
 const osTimerAttr_t RandomSymbolTimer_attributes = {
-  .name = "RandomSymbolTimer"
+  .name = "RandomSymbolTimer",
+  .cb_mem = &RandomSymbolTimerControlBlock,
+  .cb_size = sizeof(RandomSymbolTimerControlBlock),
 };
 /* Definitions for lowercaseTimer */
 osTimerId_t lowercaseTimerHandle;
+osStaticTimerDef_t lowercaseTimerControlBlock;
 const osTimerAttr_t lowercaseTimer_attributes = {
-  .name = "lowercaseTimer"
+  .name = "lowercaseTimer",
+  .cb_mem = &lowercaseTimerControlBlock,
+  .cb_size = sizeof(lowercaseTimerControlBlock),
 };
 /* Definitions for ProcessSemaphore */
 osSemaphoreId_t ProcessSemaphoreHandle;
 const osSemaphoreAttr_t ProcessSemaphore_attributes = {
   .name = "ProcessSemaphore"
-};
-/* Definitions for Issue_Symbols_Semaphore */
-osSemaphoreId_t Issue_Symbols_SemaphoreHandle;
-const osSemaphoreAttr_t Issue_Symbols_Semaphore_attributes = {
-  .name = "Issue_Symbols_Semaphore"
-};
-/* Definitions for Issue_lowercases_Semaphore */
-osSemaphoreId_t Issue_lowercases_SemaphoreHandle;
-const osSemaphoreAttr_t Issue_lowercases_Semaphore_attributes = {
-  .name = "Issue_lowercases_Semaphore"
-};
-/* Definitions for ProcessButton */
-osSemaphoreId_t ProcessButtonHandle;
-const osSemaphoreAttr_t ProcessButton_attributes = {
-  .name = "ProcessButton"
 };
 /* USER CODE BEGIN PV */
 
@@ -155,8 +147,8 @@ void D2_Task(void *argument);
 /*** Globals *********/
 uint8_t RX_Buffer[BUFFER_SIZE] = {0};
 uint8_t recvd_data; // byte in from USART
-int Random_Symbol_Timer_Speed = 200000;  /* Start with 4-second */
-int Random_lowercase_Timer_Speed = 400000;  /* Start with 7/10 second */
+int Random_Symbol_Timer_Speed = 2300;  /* Start with 4-second */
+int Random_lowercase_Timer_Speed = 1800;  /* Start with 7/10 second */
 /*Switch 3 */
 bool resetQueue=false;
 osStatus_t timer_status;
@@ -244,22 +236,13 @@ int main(void)
   /* creation of ProcessSemaphore */
   ProcessSemaphoreHandle = osSemaphoreNew(1, 1, &ProcessSemaphore_attributes);
 
-  /* creation of Issue_Symbols_Semaphore */
-  Issue_Symbols_SemaphoreHandle = osSemaphoreNew(1, 1, &Issue_Symbols_Semaphore_attributes);
-
-  /* creation of Issue_lowercases_Semaphore */
-  Issue_lowercases_SemaphoreHandle = osSemaphoreNew(1, 1, &Issue_lowercases_Semaphore_attributes);
-
-  /* creation of ProcessButton */
-  ProcessButtonHandle = osSemaphoreNew(1, 1, &ProcessButton_attributes);
-
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
   /* creation of ProcessQueueTimer */
-  ProcessQueueTimerHandle = osTimerNew(PQTimer_CB, osTimerPeriodic, NULL, &ProcessQueueTimer_attributes);
+  ProcessQueueTimerHandle = osTimerNew(PQTimer_CB, osTimerOnce, NULL, &ProcessQueueTimer_attributes);
 
   /* creation of RandomSymbolTimer */
   RandomSymbolTimerHandle = osTimerNew(Add_Random_Symbols_to_Queue, osTimerPeriodic, NULL, &RandomSymbolTimer_attributes);
@@ -658,27 +641,24 @@ void Process_Queue_Task(void *argument)
 void Peek_the_Queue_Task(void *argument)
 	{
 	int lastqueueCount = 0;
-	char peekedQueue[QUEUE_SIZE];
-	for (int i=0; (i<QUEUE_SIZE) ; i++) {peekedQueue[i] = 0;}
+	char peekedQueue[QUEUE_SIZE] = {0,};
+	void *Next;
+	Next = ASCII_Char_QueueHandle;
+	//int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
+	//for (int i=0; (i<QUEUE_SIZE) ; i++) {peekedQueue[i] = 0;}
     while (true)
 		{
-    	if (xQueueIsQueueEmptyFromISR(ASCII_Char_QueueHandle) == false)
-			{
-    		/* Now just print it if the count changes*/
-
 			int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
 			if (queueCount !=lastqueueCount)
 				{ /* then show new stuff */
 				lastqueueCount = queueCount;
-				if (xQueuePeekFromISR(ASCII_Char_QueueHandle, peekedQueue ) == pdFAIL)
-					printf("Queue Peek Failed \n\r");
+				// xQueuePeek(ASCII_Char_QueueHandle, peekedQueue ,100000);
 			/* Now display the Queue */
-			// srand((unsigned) something
-				printf("QUEUE   %s\n\r",peekedQueue);
+				// printf("QUEUE   %s\n\r",peekedQueue);
+				printf("QUEUE   %s%c",ASCII_Char_QueueBuffer,'\r');
 				}
-			}
+		osDelay(10);
 	   }
-		osDelay(1000);
 	}
 
 
@@ -781,15 +761,15 @@ void process_button_Task(void *arguments)
 		switch(button_pushed)
 			{
 			case 0:
-				osDelay(50);
+				osDelay(1);
 			break;
 			case 1:
 				/* Button_1  is START/STOP the random symbols (! .... 0)*/
-				 bool lower_running = osTimerIsRunning(lowercaseTimerHandle);
-				 if (osTimerIsRunning(lowercaseTimerHandle))
+				 bool lower_running = osTimerIsRunning(&lowercaseTimerHandle);
+				 if (osTimerIsRunning(&lowercaseTimerHandle))
 					timer_status = osTimerStop(lowercaseTimerHandle);
 				else
-					timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+					timer_status = osTimerStart(&lowercaseTimerHandle,Random_lowercase_Timer_Speed);
 			button_pushed = 0;
 			break;
 			case 2:
@@ -799,12 +779,13 @@ void process_button_Task(void *arguments)
 					timer_status = osTimerStop(RandomSymbolTimerHandle);
 				else
 					timer_status = osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
-				break;
+			button_pushed = 0;
+			break;
 			case 3:
 				/* Resets the Queue */
 				resetQueue = true;   // But it can't be done inside an ISR
+				button_pushed = 0;
 				break;
-			default: __NOP();
 			}
 		}
 	}
@@ -826,7 +807,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			break;
 		default: __NOP();
 		}
-	HAL_Delay(70);  //* Time to make sure the switch is debounced
+	// HAL_Delay(70);  //* Time to make sure the switch is debounced
 	}
 
 
@@ -874,12 +855,12 @@ void Add_Random_Symbols_to_Queue(void *argument)
   /* This is the callback for the Software Timer:   */
 	char rand_sym ;
 	rand_sym = get_random_char('!','/');
+	// srand((unsigned) uwTick);
 	if (osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U) == osOK)
 		{
 	/* Show it and start another */
 	// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
 	// Peek_the_Queue(ASCII_Char_QueueHandle);
-		// osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
 		}
 
 
@@ -892,11 +873,13 @@ void Add_Random_lowercase_to_Queue(void *argument)
   /* USER CODE BEGIN Add_Random_lowercase_to_Queue */
 		char rand_sym ;
 		rand_sym = get_random_char('a','z');
+		// srand((unsigned) uwTick);
 		if (osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U) == osOK)
 			{
 			/* Show it and start another */
 			// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
 		// Peek_the_Queue(ASCII_Char_QueueHandle);
+		// osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
 			}
 
   /* USER CODE END Add_Random_lowercase_to_Queue */
@@ -937,6 +920,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		//printf("\n\r\t[%c]\n\r",myrand);
 		// Get cursor position
 		// printf('\033[6n');
+		srand((unsigned) recvd_data);
 		osMessageQueuePut(ASCII_Char_QueueHandle, &upper, 100, 0U);
 		// Peek_the_Queue(ASCII_Char_QueueHandle);
 		HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
