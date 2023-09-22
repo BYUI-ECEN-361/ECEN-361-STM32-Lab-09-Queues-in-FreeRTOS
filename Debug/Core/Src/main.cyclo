@@ -15,9 +15,9 @@
 ../Core/Src/main.c:756:6:process_button_Task	7
 ../Core/Src/main.c:798:6:HAL_GPIO_EXTI_Callback	5
 ../Core/Src/main.c:831:6:StartDefaultTask	2
-../Core/Src/main.c:851:6:PQTimer_CB	1
-../Core/Src/main.c:860:6:Add_Random_Symbols_to_Queue	1
-../Core/Src/main.c:879:6:Add_Random_lowercase_to_Queue	1
-../Core/Src/main.c:904:6:HAL_TIM_PeriodElapsedCallback	3
-../Core/Src/main.c:918:6:HAL_UART_RxCpltCallback	3
-../Core/Src/main.c:947:6:Error_Handler	1
+../Core/Src/main.c:849:6:PQTimer_CB	1
+../Core/Src/main.c:858:6:Add_Random_Symbols_to_Queue	1
+../Core/Src/main.c:877:6:Add_Random_lowercase_to_Queue	1
+../Core/Src/main.c:902:6:HAL_TIM_PeriodElapsedCallback	3
+../Core/Src/main.c:916:6:HAL_UART_RxCpltCallback	3
+../Core/Src/main.c:945:6:Error_Handler	1

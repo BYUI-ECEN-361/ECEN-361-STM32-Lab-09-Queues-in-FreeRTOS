@@ -657,7 +657,7 @@ void Peek_the_Queue_Task(void *argument)
 					{
 					HAL_UART_Transmit(&huart2, (ASCII_Char_QueueBuffer+i), 1, HAL_MAX_DELAY);
 					}
-					HAL_UART_Transmit(&huart2, space50ptr, 50, HAL_MAX_DELAY);
+					HAL_UART_Transmit(&huart2, space50ptr, (50-queueCount), HAL_MAX_DELAY);
 					HAL_UART_Transmit(&huart2, cptr, 1, HAL_MAX_DELAY);
 				}
 		osDelay(1);
@@ -838,8 +838,6 @@ void StartDefaultTask(void *argument)
     if (resetQueue)
 		{
 		osMessageQueueReset (ASCII_Char_QueueHandle);
- printf("                                                            %c",'\r');
-		// xQueueGenericReset( ASCII_Char_QueueHandle, xNewQueue )
 		resetQueue = false;
 		}
 
