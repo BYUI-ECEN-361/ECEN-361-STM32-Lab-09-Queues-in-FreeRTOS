@@ -689,7 +689,8 @@ void Display_Queue_Status_Task(void *argument)
 		else if (queueCount == (uint8_t)queueSize)
 			{
 			/* Display Full */
-			MultiFunctionShield_Display(880);
+			// MultiFunctionShield_Display(880);
+			Display_the_FULL();
 			}
 		else
 			{

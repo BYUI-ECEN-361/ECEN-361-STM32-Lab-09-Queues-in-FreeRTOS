@@ -94,6 +94,14 @@ void set_Decimal_Point (int position)
     SEGMENT_VALUE[4 - position] &= 0x7F;
 	}
 
+void Display_the_FULL (void)
+	{
+	/* Just puts the 4 7seg characters that spell 'FULL' */
+	SEGMENT_VALUE[3] = 0x43;
+	SEGMENT_VALUE[2] = 0x43;    // letter L
+	SEGMENT_VALUE[1] = 0x41;    // Letter U
+	SEGMENT_VALUE[0] = 0x0e;    // Letter F
+	}
 
 
 void MultiFunctionShield_Display (int16_t value)
