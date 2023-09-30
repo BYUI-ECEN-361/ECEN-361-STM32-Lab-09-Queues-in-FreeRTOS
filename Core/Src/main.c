@@ -898,15 +898,16 @@ void PQTimer_CB(void *argument)
 void Add_Random_Symbols_to_Queue(void *argument)
 {
   /* USER CODE BEGIN Add_Random_Symbols_to_Queue */
-	char rand_sym = get_random_char('\192','\255');
-	//char rand_sym = get_random_char('!','/');
+	/* Extra credit -- duplicate and use this range
+	 * char rand_sym = get_random_char('\192','\255');
+	 */
+	char rand_sym = get_random_char('!','/');
 	// srand((unsigned) uwTick);
 	if (osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U) == osOK)
 		{
 		/* Show it and start another */
 		// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
 		}
-
   /* USER CODE END Add_Random_Symbols_to_Queue */
 }
 
