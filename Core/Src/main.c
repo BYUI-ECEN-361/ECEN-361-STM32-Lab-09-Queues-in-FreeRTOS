@@ -151,7 +151,8 @@ int Random_lowercase_Timer_Speed = 1800;  /* Start with 7/10 second */
 /*Switch 3 */
 bool resetQueue=false;
 osStatus_t timer_status;
-uint8_t button_pushed = 0; // button to go to semaphore process
+uint8_t button_pushed = 0;			// button to go to processes
+int read_pacing_delay = 2000;		// Millisec to wait before taking each character
 
 char get_random_char(int bottom,int top)
 	{
@@ -270,7 +271,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   osThreadNew(D2_Task, "D2_Task", &defaultTask_attributes);
-
+  osThreadNew(Process_Queue_Task,"Process_Queue_Task", &defaultTask_attributes);
   osThreadNew(Display_Queue_Status_Task,"DisplayQueueStatus" , &defaultTask_attributes);
   defaultTaskHandle = osThreadNew(Peek_the_Queue_Task, NULL, &bigTask_attributes);
   osThreadNew(process_button_Task,"Process Button Task" , &bigTask_attributes);
@@ -617,24 +618,62 @@ void D2_Task(void *argument)
 
 void Process_Queue_Task(void *argument)
 	{
+	char got_char;
+	char peek_char;
+	osStatus_t queue_stat;
+
+	char got_char_ptr = &got_char; // ptr for buffer to pop char
 	/*
 	 *
-	 * 1.) Display the Queue Status on the SevenSeg.
-	 * 		If full, display:  "FFFF"
-	 *		Otherwise display the queue count
-	 *
-	 * 2.) The QueThis task looks at the queue every time the semaphore is granted.
-	 *
-	 * it's read and printed.
-	 * If the
+	 * This process consumes items in the queue, but at a determined
+	 * rate.   Pacing matches a real-situation where the downstream
+	 * consumer can't take things as fast as they may come.
+	 * There are various ways to pace the consumption, but to be simple
+	 * we'll just use the OS and osDelay to hold off on the loop
 	 */
 	while(true)
 		{
+		if (osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, (uint8_t) 100, 1) == osOK)
+			{
+			int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
+			/* printf("%c",got_char);
+			 * Not sure how to put out the data because the TTY is being used to show
+			 * character I just popped
+			 *
+			 *
+			 * I'll put a space in the location where this was popped from
+			 */
+			volatile char *point = (char *) (ASCII_Char_QueueBuffer + queueCount);
+			*point = ' ';
+			// xQueuePeek( QueueHandle_t xQueue, void * const pvBuffer, TickType_t xTicksToWait )
+
+		    queue_stat = osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, (uint8_t) 100, 1);
+			queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
+
+		    queue_stat = xQueuePeek(ASCII_Char_QueueHandle, &peek_char,  1);
+			queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
+		    queue_stat = xQueuePeek(ASCII_Char_QueueHandle, &peek_char,  1);
+			queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
+		    queue_stat = xQueuePeek(ASCII_Char_QueueHandle, &peek_char,  1);
+			queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
+
+		    queue_stat = osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, (uint8_t) 100, 1);
+		    queue_stat = osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, (uint8_t) 100, 1);
+			if (queueCount > 10)
+				{
+				int a=1;
+				}
+			}
+		// osDelay(read_pacing_delay);
+		osDelay(10000);
 		}
 	}
 
 void Peek_the_Queue_Task(void *argument)
 	{
+	/* This routine is used to output the current values on the queue
+	 * to help visualize what's going on.  The output is on the UART TTY
+	 */
 	int lastqueueCount = 0;
     while (true)
 		{
