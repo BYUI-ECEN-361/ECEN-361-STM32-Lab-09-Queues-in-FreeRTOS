@@ -146,7 +146,7 @@ void D2_Task(void *argument);
 /*** Globals *********/
 uint8_t RX_Buffer[BUFFER_SIZE] = {0};
 uint8_t recvd_data; // byte in from USART
-int Random_Symbol_Timer_Speed = 2300;  /* Start with 4-second */
+int Random_Symbol_Timer_Speed = 2300;  /* Start with 2.3-second */
 int Random_lowercase_Timer_Speed = 1800;  /* Start with 7/10 second */
 /*Switch 3 */
 bool resetQueue=false;
@@ -898,17 +898,14 @@ void PQTimer_CB(void *argument)
 void Add_Random_Symbols_to_Queue(void *argument)
 {
   /* USER CODE BEGIN Add_Random_Symbols_to_Queue */
-  /* This is the callback for the Software Timer:   */
-	char rand_sym ;
-	rand_sym = get_random_char('!','/');
+	char rand_sym = get_random_char('\192','\255');
+	//char rand_sym = get_random_char('!','/');
 	// srand((unsigned) uwTick);
 	if (osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U) == osOK)
 		{
-	/* Show it and start another */
-	// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
-	// Peek_the_Queue(ASCII_Char_QueueHandle);
+		/* Show it and start another */
+		// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
 		}
-
 
   /* USER CODE END Add_Random_Symbols_to_Queue */
 }

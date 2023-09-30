@@ -17,7 +17,7 @@
 ../Core/Src/main.c:871:6:StartDefaultTask	2
 ../Core/Src/main.c:889:6:PQTimer_CB	1
 ../Core/Src/main.c:898:6:Add_Random_Symbols_to_Queue	1
-../Core/Src/main.c:917:6:Add_Random_lowercase_to_Queue	1
-../Core/Src/main.c:942:6:HAL_TIM_PeriodElapsedCallback	3
-../Core/Src/main.c:956:6:HAL_UART_RxCpltCallback	3
-../Core/Src/main.c:985:6:Error_Handler	1
+../Core/Src/main.c:914:6:Add_Random_lowercase_to_Queue	1
+../Core/Src/main.c:939:6:HAL_TIM_PeriodElapsedCallback	3
+../Core/Src/main.c:953:6:HAL_UART_RxCpltCallback	3
+../Core/Src/main.c:982:6:Error_Handler	1
