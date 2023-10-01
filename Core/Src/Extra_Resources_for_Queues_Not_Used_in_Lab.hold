@@ -1,0 +1,82 @@
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "cmsis_os.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include "MultiFunctionShield.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+#include <ctype.h>
+#include "queue.h"
+
+
+const osThreadAttr_t bigStackTask_attributes = {
+  .name = "bigStackTask",
+  .stack_size = 2048 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+
+/* Definitions for ASCII_Char_Queue2 */
+osMessageQueueId_t ASCII_Char_QueueHandle2;
+uint8_t ASCII_Char_QueueBuffer2[ 50 * sizeof( uint8_t ) ];
+osMessageQDef_t ASCII_Char_QueueControlBlock2;
+const osMessageQueueAttr_t ASCII_Char_Queue_attributes = {
+  .name = "ASCII_Char_Queue",
+  .cb_mem = &ASCII_Char_QueueControlBlock2,
+  .cb_size = sizeof(ASCII_Char_QueueControlBlock2),
+  .mq_mem = &ASCII_Char_QueueBuffer2,
+  .mq_size = sizeof(ASCII_Char_QueueBuffer2)
+};
+
+
+/*
+
+			queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
+		    queue_stat = xQueuePeek(ASCII_Char_QueueHandle, &peek_char,  1);
+*/
+
+void Peek_the_Queue_Task(void *argument);
+// defaultTaskHandle = osThreadNew(Peek_the_Queue_Task, NULL, &bigStackTask_attributes);
+
+
+
+void Peek_the_Queue_Task(void *argument)
+	{
+	// This routine is used to output the current values on the queue
+	// to help visualize what's going on.  The output is on the UART TTY
+	 //
+	int lastqueueCount = 0;
+    while (true)
+		{
+    	    int i;
+    	    char cr = '\r';
+    	    int cptr = &cr;
+    	    char space[8] = "        ";
+    	    char space50[50] = "                                                   ";
+    	    int spaceptr = &space;
+    	    int space50ptr = &space50;
+			int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle2);
+			if (queueCount !=lastqueueCount)
+				{ /* then show new stuff */
+				lastqueueCount = queueCount;
+				/* Display the queue by just pointing directly at the buffer */
+				// printf("QUEUE   %s%c",ASCII_Char_QueueBuffer,'\r');
+				//printf("QUEUE   ");
+				// HAL_UART_Transmit(&huart2, spaceptr, 8, HAL_MAX_DELAY);
+				for (i=0; (i<=queueCount); i++)
+					{
+					// HAL_UART_Transmit(&huart2, (ASCII_Char_QueueBuffer+i), 1, HAL_MAX_DELAY);
+					}
+					// HAL_UART_Transmit(&huart2, space50ptr, (50-queueCount), HAL_MAX_DELAY);
+					// HAL_UART_Transmit(&huart2, cptr, 1, HAL_MAX_DELAY);
+				}
+		osDelay(1);
+	   }
+	}
+
+
+

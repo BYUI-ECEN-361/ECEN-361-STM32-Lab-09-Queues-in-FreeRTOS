@@ -130,7 +130,6 @@ void Add_Random_lowercase_to_Queue(void *argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-void Peek_the_Queue_Task(void *argument);
 void Process_Queue_Task(void *argument);
 void Display_Queue_Status_Task(void *argument);
 void process_button_Task(void *argument);
@@ -272,7 +271,6 @@ int main(void)
   osThreadNew(D2_Task, "D2_Task", &defaultTask_attributes);
   osThreadNew(Process_Queue_Task,"Process_Queue_Task", &defaultTask_attributes);
   osThreadNew(Display_Queue_Status_Task,"DisplayQueueStatus" , &defaultTask_attributes);
-  defaultTaskHandle = osThreadNew(Peek_the_Queue_Task, NULL, &bigTask_attributes);
   osThreadNew(process_button_Task,"Process Button Task" , &bigTask_attributes);
 
   /* USER CODE END RTOS_THREADS */
@@ -618,10 +616,7 @@ void D2_Task(void *argument)
 void Process_Queue_Task(void *argument)
 	{
 	char got_char;
-	char peek_char;
-	osStatus_t queue_stat;
-
-	char got_char_ptr = &got_char; // ptr for buffer to pop char
+	uint8_t msg_prio =100;
 	/*
 	 *
 	 * This process consumes items in the queue, but at a determined
@@ -632,75 +627,22 @@ void Process_Queue_Task(void *argument)
 	 */
 	while(true)
 		{
-		if (osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, (uint8_t) 100, 1) == osOK)
+		if (osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, &msg_prio, (uint32_t) 1) == osOK)
 			{
 			int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
 			/* printf("%c",got_char);
 			 * Not sure how to put out the data because the TTY is being used to show
 			 * character I just popped
 			 *
-			 *
 			 * I'll put a space in the location where this was popped from
 			 */
 			volatile char *point = (char *) (ASCII_Char_QueueBuffer + queueCount);
 			*point = ' ';
-			// xQueuePeek( QueueHandle_t xQueue, void * const pvBuffer, TickType_t xTicksToWait )
-
-		    queue_stat = osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, (uint8_t) 100, 1);
-			queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
-
-		    queue_stat = xQueuePeek(ASCII_Char_QueueHandle, &peek_char,  1);
-			queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
-		    queue_stat = xQueuePeek(ASCII_Char_QueueHandle, &peek_char,  1);
-			queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
-		    queue_stat = xQueuePeek(ASCII_Char_QueueHandle, &peek_char,  1);
-			queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
-
-		    queue_stat = osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, (uint8_t) 100, 1);
-		    queue_stat = osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, (uint8_t) 100, 1);
-			if (queueCount > 10)
-				{
-				int a=1;
-				}
 			}
-		// osDelay(read_pacing_delay);
-		osDelay(10000);
+		osDelay(read_pacing_delay);
 		}
 	}
 
-void Peek_the_Queue_Task(void *argument)
-	{
-	/* This routine is used to output the current values on the queue
-	 * to help visualize what's going on.  The output is on the UART TTY
-	 */
-	int lastqueueCount = 0;
-    while (true)
-		{
-    	    int i;
-    	    char cr = '\r';
-    	    int cptr = &cr;
-    	    char space[8] = "        ";
-    	    char space50[50] = "                                                   ";
-    	    int spaceptr = &space;
-    	    int space50ptr = &space50;
-			int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
-			if (queueCount !=lastqueueCount)
-				{ /* then show new stuff */
-				lastqueueCount = queueCount;
-				/* Display the queue by just pointing directly at the buffer */
-				// printf("QUEUE   %s%c",ASCII_Char_QueueBuffer,'\r');
-				//printf("QUEUE   ");
-				HAL_UART_Transmit(&huart2, spaceptr, 8, HAL_MAX_DELAY);
-				for (i=0; (i<=queueCount); i++)
-					{
-					HAL_UART_Transmit(&huart2, (ASCII_Char_QueueBuffer+i), 1, HAL_MAX_DELAY);
-					}
-					HAL_UART_Transmit(&huart2, space50ptr, (50-queueCount), HAL_MAX_DELAY);
-					HAL_UART_Transmit(&huart2, cptr, 1, HAL_MAX_DELAY);
-				}
-		osDelay(1);
-	   }
-	}
 
 
 
@@ -714,15 +656,14 @@ void Display_Queue_Status_Task(void *argument)
 	while (true)
 		{
 		/*
-		 *  If Empty: "EEEE"
-		 *  If Full:  "FFFF"
-		 *  else Count
+		 *  If Empty: "----"
+		 *  If Full:  "FULL"
+		 *  else Display the Count
 		 */
 		queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
 		if (queueCount ==0)
-			{
-			/* Display Empty*/
-			MultiFunctionShield_Display(10000);
+			{   /* Display Empty*/
+			MultiFunctionShield_Display(10000);   /* greater than 9999 puts the '----' */
 			}
 		else if (queueCount == (uint8_t)queueSize)
 			{
@@ -734,10 +675,11 @@ void Display_Queue_Status_Task(void *argument)
 			{
 			MultiFunctionShield_Display((uint16_t) queueCount);
 			}
-
 		osDelay(10);
 		}
 	}
+
+
 
 void Read_and_Transmit_Task()
 	{
@@ -972,7 +914,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		// printf('\033[6n');
 		srand((unsigned) recvd_data);
 		osMessageQueuePut(ASCII_Char_QueueHandle, &upper, 100, 0U);
-		// Peek_the_Queue(ASCII_Char_QueueHandle);
 		HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 		// USART_ClearITPendingBit(&huart2, USART_IT);
 		}
