@@ -147,7 +147,8 @@ void D2_Task(void *argument);
 uint8_t RX_Buffer[BUFFER_SIZE] = {0};
 uint8_t recvd_data; // byte in from USART
 int Random_Symbol_Timer_Speed = 2300;  /* Start with 2.3-second */
-int Random_lowercase_Timer_Speed = 1800;  /* Start with 7/10 second */
+// int Random_lowercase_Timer_Speed = 1800;  /* Start with 1.8 second */
+int Random_lowercase_Timer_Speed = 50000;  /* Start with 1.8 second */
 /*Switch 3 */
 bool resetQueue=false;
 osStatus_t timer_status;
@@ -162,8 +163,6 @@ char get_random_char(int bottom,int top)
 	return rand_char + bottom;
 
 	}
-
-
 
 /* USER CODE END 0 */
 
@@ -795,6 +794,12 @@ PUTCHAR_PROTOTYPE
 
 void process_button_Task(void *arguments)
 	{
+	/*
+	 * The whole reason we don't just do these things inside the ISR itself is
+	 * that queue operations can't be done from within an ISR.  This makes sense
+	 * because the OS wouldn't be able to handle push/pop from the queue from other
+	 * processes if operations were being done in an ISR too.
+	 */
 	while(true)
 		{
 		switch(button_pushed)
@@ -802,35 +807,41 @@ void process_button_Task(void *arguments)
 			case 0:
 				osDelay(1);
 			break;
-			case 1: /* Button_1  is START/STOP the random symbols (! .... 0)*/
-				 if (osTimerIsRunning(lowercaseTimerHandle))
-					timer_status = osTimerStop(lowercaseTimerHandle);
-				else
-					{
-					timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
-					}
-			button_pushed = 0;
-			HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-			break;
-			case 2:
-				/* Button_2  is START/STOP the random symbols (! .... 0)*/
+
+
+			case 1:
+				/* Button_1  is START/STOP the random symbols (! .... 0)*/
 				 if (osTimerIsRunning(RandomSymbolTimerHandle))
 					timer_status = osTimerStop(RandomSymbolTimerHandle);
 				else
 					{
 					timer_status = osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
 					}
-			button_pushed = 0;
 			HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 			break;
+
+			case 2: /* Button_2  is START/STOP the lowercase (! .... 0)*/
+				/* ****************** STUDENT EDITABLE CODE START ******************* */
+				 if (osTimerIsRunning(lowercaseTimerHandle))
+					timer_status = osTimerStop(lowercaseTimerHandle);
+				else
+					{
+					timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+					}
+				 /* ******************* STUDENT EDITABLE CODE STOP ******************* */
+			HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+			break;
+
 			case 3:
 				/* Resets the Queue */
-				resetQueue = true;   // But it can't be done inside an ISR
-				 printf("%c                                                            %c",'\r','\r');
-				button_pushed = 0;
+				/* ****************** STUDENT EDITABLE CODE START ******************* */
+				resetQueue = true;
+				printf("%c                                                            %c",'\r','\r');
+				 /* ******************* STUDENT EDITABLE CODE STOP ******************* */
 			break;
 			}
-		// osDelay(70);  //* Time to make sure the switch is debounced
+			button_pushed = 0;
+		    osDelay(10);  // Time to make sure the switch is debounced
 		}
 	}
 
@@ -915,17 +926,12 @@ void Add_Random_Symbols_to_Queue(void *argument)
 void Add_Random_lowercase_to_Queue(void *argument)
 {
   /* USER CODE BEGIN Add_Random_lowercase_to_Queue */
+/* ****************** STUDENT EDITABLE CODE START ******************* */
 		char rand_sym ;
 		rand_sym = get_random_char('a','z');
-		// srand((unsigned) uwTick);
-		if (osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U) == osOK)
-			{
-			/* Show it and start another */
-			// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
-		// Peek_the_Queue(ASCII_Char_QueueHandle);
-		// osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
-			}
+		osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U);
 
+/* ****************** STUDENT EDITABLE CODE END ******************* */
   /* USER CODE END Add_Random_lowercase_to_Queue */
 }
 
