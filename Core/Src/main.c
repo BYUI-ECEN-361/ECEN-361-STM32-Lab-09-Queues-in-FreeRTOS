@@ -134,7 +134,8 @@ void Process_Queue_Task(void *argument);
 void Display_Queue_Status_Task(void *argument);
 void process_button_Task(void *argument);
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-void D2_Task(void *argument);
+void Random_Symbols_is_Running_Task(void *argument);
+void Random_lowercase_is_Running_Task(void *argument);
 // void Read_and_Transmit_Task();
 // void Receive_and_Print_Task();
 
@@ -268,7 +269,8 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  osThreadNew(D2_Task, "D2_Task", &defaultTask_attributes);
+  osThreadNew(Random_Symbols_is_Running_Task, "Random_Symbols_is_Running_Task", &defaultTask_attributes);
+  osThreadNew(Random_lowercase_is_Running_Task, "Random_lowercase_is_Running_Task", &defaultTask_attributes);
   osThreadNew(Process_Queue_Task,"Process_Queue_Task", &defaultTask_attributes);
   osThreadNew(Display_Queue_Status_Task,"DisplayQueueStatus" , &defaultTask_attributes);
   osThreadNew(process_button_Task,"Process Button Task" , &bigTask_attributes);
@@ -552,19 +554,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LED_D1_Pin LED_D3_Pin SevenSeg_CLK_Pin SevenSeg_DATA_Pin */
-  GPIO_InitStruct.Pin = LED_D1_Pin|LED_D3_Pin|SevenSeg_CLK_Pin|SevenSeg_DATA_Pin;
+  /*Configure GPIO pins : LED_D1_Pin LED_D2_Pin */
+  GPIO_InitStruct.Pin = LED_D1_Pin|LED_D2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : LED_D3_Pin SevenSeg_CLK_Pin SevenSeg_DATA_Pin */
+  GPIO_InitStruct.Pin = LED_D3_Pin|SevenSeg_CLK_Pin|SevenSeg_DATA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : LED_D2_Pin */
-  GPIO_InitStruct.Pin = LED_D2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_D2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : Button_3_Pin */
   GPIO_InitStruct.Pin = Button_3_Pin;
@@ -605,13 +607,35 @@ static void MX_GPIO_Init(void)
 
 
 /************  Task-Creation-Part-B *****************/
-void D2_Task(void *argument)
+/*
+ * Make D2 show that random symbols are being put on
+ *      D3 show that random lowercase are being put on
+ */
+
+void Random_Symbols_is_Running_Task(void *argument)
 	{ while(true)
 		{
-			  HAL_GPIO_TogglePin(LED_D2_GPIO_Port,LED_D2_Pin);
-			  osDelay(500);
+			 if (osTimerIsRunning(RandomSymbolTimerHandle))
+				  HAL_GPIO_TogglePin(LED_D2_GPIO_Port,LED_D2_Pin);
+			 else		/* turn it off */
+				  HAL_GPIO_WritePin(LED_D2_GPIO_Port,LED_D2_Pin,GPIO_PIN_SET);
+			  osDelay(300);
 		}
 	}
+void Random_lowercase_is_Running_Task(void *argument)
+	{ while(true)
+		{
+			 if (osTimerIsRunning(lowercaseTimerHandle))
+				  HAL_GPIO_TogglePin(LED_D2_GPIO_Port,LED_D3_Pin);
+			 else		/* turn it off */
+				  HAL_GPIO_WritePin(LED_D2_GPIO_Port,LED_D3_Pin,GPIO_PIN_SET);
+			  osDelay(300);
+		}
+	}
+
+
+
+
 
 void Process_Queue_Task(void *argument)
 	{
@@ -742,6 +766,11 @@ void process_button_Task(void *arguments)
 	 * because the OS wouldn't be able to handle push/pop from the queue from other
 	 * processes if operations were being done in an ISR too.
 	 */
+	char got_char = '\0';
+	char * got_char_ptr = &got_char;
+	uint8_t msg_prio =100;
+	int i=0;
+	char queue_dump[QUEUE_SIZE];
 	while(true)
 		{
 		switch(button_pushed)
@@ -750,7 +779,8 @@ void process_button_Task(void *arguments)
 				osDelay(1);
 			break;
 
-
+					// HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+					// HAL_NVIC_DisableIRQ(EXTI1_IRQn);
 			case 1:
 				/* Button_1  is START/STOP the random symbols (! .... 0)*/
 				 if (osTimerIsRunning(RandomSymbolTimerHandle))
@@ -758,27 +788,35 @@ void process_button_Task(void *arguments)
 				else
 					{
 					timer_status = osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+					HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 					}
-			HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 			break;
 
 			case 2: /* Button_2  is START/STOP the lowercase (! .... 0)*/
-				/* ****************** STUDENT EDITABLE CODE START ******************* */
 				 if (osTimerIsRunning(lowercaseTimerHandle))
 					timer_status = osTimerStop(lowercaseTimerHandle);
 				else
 					{
 					timer_status = osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+					HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 					}
-				 /* ******************* STUDENT EDITABLE CODE STOP ******************* */
-			HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 			break;
 
 			case 3:
 				/* Resets the Queue */
 				/* ****************** STUDENT EDITABLE CODE START ******************* */
-				resetQueue = true;
-				printf("%c                                                            %c",'\r','\r');
+				// resetQueue = true;
+				/* Turnoff the random counters */
+				timer_status = osTimerStop(lowercaseTimerHandle);
+				timer_status = osTimerStop(RandomSymbolTimerHandle);
+				printf("QUEUE INPUT HALTED    Flush below:\n\r");
+				printf("                                      \r\n");
+				// osMessageQueueGet(ASCII_Char_QueueHandle, &queue_dump, &msg_prio, (uint32_t) 1) == osOK)
+				while (osMessageQueueGet(ASCII_Char_QueueHandle, got_char_ptr, &msg_prio, (uint32_t) 1) == osOK)
+					queue_dump[i++] = got_char;
+				HAL_UART_Transmit(&huart2, &queue_dump , (uint8_t) --i, HAL_MAX_DELAY);  //echo each one as it's typed
+				printf("\n\r");
+
 				 /* ******************* STUDENT EDITABLE CODE STOP ******************* */
 			break;
 			}
@@ -794,13 +832,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	switch(GPIO_Pin)
 		{
 		case Button_1_Pin:
-			osTimerStop(lowercaseTimerHandle);
-			HAL_NVIC_DisableIRQ(EXTI1_IRQn);
 			button_pushed = 1;
 			break;
 		case Button_2_Pin:
-			osTimerStop(RandomSymbolTimerHandle);
-			HAL_NVIC_DisableIRQ(EXTI4_IRQn);
+			//osTimerStop(RandomSymbolTimerHandle);
+			//HAL_NVIC_DisableIRQ(EXTI4_IRQn);
 			button_pushed = 2;
 			break;
 		case Button_3_Pin:
