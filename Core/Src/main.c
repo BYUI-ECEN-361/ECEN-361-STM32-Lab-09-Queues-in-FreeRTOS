@@ -216,8 +216,6 @@ int main(void)
   printf("\033[6;3HHello\r\n");
   printf("\033\143");
   printf("Welcome to ECEN-361 Lab-07\n\r\n\r");
-  printf("QUEUE   0        1         2         3         4         5\n\r");
-  printf("        12345678901234567890123456789012345678901234567890\n%c",'\r');
   HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 /**
  * Note that Timer-1 Channel 1 goes to our MultiBoard D3, and it's Negative True output
@@ -809,29 +807,30 @@ void process_button_Task(void *arguments)
 			case 3:
 				/* Resets the Queue */
 				/* ****************** STUDENT EDITABLE CODE START ******************* */
-				// resetQueue = true;
-				/* Turnoff the random counters */
 				int q=0;  //index to go thru the queue
-				if (randoms_running)
-					{ //Here because we got a Halt/restart
+				if (randoms_running)     //Here because we got a Halt/restart
+					{
 					timer_status = osTimerStop(lowercaseTimerHandle);
 					timer_status = osTimerStop(RandomSymbolTimerHandle);
 					randoms_running = false;
 					printf("QUEUE INPUT HALTED    Flush below:\n\r");
+					printf("QUEUE   0        1         2         3         4         5\n\r");
+					printf("        12345678901234567890123456789012345678901234567890\n%c",'\r');
 					while (osMessageQueueGet(ASCII_Char_QueueHandle, got_char_ptr, &msg_prio, (uint32_t) 1) == osOK)
 						queue_dump[q++] = got_char;
 					queue_dump[q] ='\0';		// to be a string, has to be terminated in a null
-					printf("          %s\n\r",queue_dump);
+					printf("        %s\n\r",queue_dump);
 					osMessageQueueReset (ASCII_Char_QueueHandle);
-					printf("\n\r Press Button_3 to continue\n\r");
+					printf("                      Press Button_3 to continue");
 					}
 				else  // were halted so restart
 					{
 					for (int i = 0; i <= QUEUE_SIZE; i++) queue_dump[i] = '\0';
-					osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
-					osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
 					// The consumer gets shutoff with the randoms_running variable
 					randoms_running = true;
+					// Producers get shutoff
+					osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+					osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
 					}
 				osDelay(3);
 				 /* ******************* STUDENT EDITABLE CODE STOP ******************* */
