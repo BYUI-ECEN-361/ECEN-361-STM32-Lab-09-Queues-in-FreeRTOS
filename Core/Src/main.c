@@ -146,14 +146,22 @@ void Random_lowercase_is_Running_Task(void *argument);
 /*** Globals *********/
 uint8_t RX_Buffer[BUFFER_SIZE] = {0};
 uint8_t recvd_data; // byte in from USART
-int Random_Symbol_Timer_Speed = 2300;  /* Start with 2.3-second */
-// int Random_lowercase_Timer_Speed = 1800;  /* Start with 1.8 second */
-int Random_lowercase_Timer_Speed = 50000;  /* Start with 1.8 second */
+
+/*** Timings for the producers and consumers ****************/
+/**************  Producers **********************************/
+int Random_Symbol_Timer_Speed = 2300;     /* A symbol every 2.3-second */
+int Random_lowercase_Timer_Speed = 1800;  /* A lowercase every  1.8 second */
+/**************  Consumer  **********************************/
+int read_pacing_delay = 2000;		// Millisec to wait before taking each character
+/************************************************************/
+
+
+
 /*Switch 3 */
 bool resetQueue=false;
 osStatus_t timer_status;
 uint8_t button_pushed = 0;			// button to go to processes
-int read_pacing_delay = 2000;		// Millisec to wait before taking each character
+bool  randoms_running = true;		// toggle with Switch S3
 
 char get_random_char(int bottom,int top)
 	{
@@ -651,19 +659,16 @@ void Process_Queue_Task(void *argument)
 	 */
 	while(true)
 		{
-		if (osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, &msg_prio, (uint32_t) 1) == osOK)
+		if (randoms_running)
 			{
-			int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
-			/* printf("%c",got_char);
-			 * Not sure how to put out the data because the TTY is being used to show
-			 * character I just popped
-			 *
-			 * I'll put a space in the location where this was popped from
-			 */
-			volatile char *point = (char *) (ASCII_Char_QueueBuffer + queueCount);
-			*point = ' ';
+			if (osMessageQueueGet(ASCII_Char_QueueHandle, &got_char, &msg_prio, (uint32_t) 1) == osOK)
+				{
+				int queueCount = osMessageQueueGetCount (ASCII_Char_QueueHandle);
+				volatile char *point = (char *) (ASCII_Char_QueueBuffer + queueCount);
+				*point = ' ';
+				}
+			osDelay(read_pacing_delay);
 			}
-		osDelay(read_pacing_delay);
 		}
 	}
 
@@ -769,8 +774,7 @@ void process_button_Task(void *arguments)
 	char got_char = '\0';
 	char * got_char_ptr = &got_char;
 	uint8_t msg_prio =100;
-	int i=0;
-	char queue_dump[QUEUE_SIZE];
+	char queue_dump[QUEUE_SIZE+1]; // in case we have to add an extra '\0' to print
 	while(true)
 		{
 		switch(button_pushed)
@@ -807,16 +811,29 @@ void process_button_Task(void *arguments)
 				/* ****************** STUDENT EDITABLE CODE START ******************* */
 				// resetQueue = true;
 				/* Turnoff the random counters */
-				timer_status = osTimerStop(lowercaseTimerHandle);
-				timer_status = osTimerStop(RandomSymbolTimerHandle);
-				printf("QUEUE INPUT HALTED    Flush below:\n\r");
-				printf("                                      \r\n");
-				// osMessageQueueGet(ASCII_Char_QueueHandle, &queue_dump, &msg_prio, (uint32_t) 1) == osOK)
-				while (osMessageQueueGet(ASCII_Char_QueueHandle, got_char_ptr, &msg_prio, (uint32_t) 1) == osOK)
-					queue_dump[i++] = got_char;
-				HAL_UART_Transmit(&huart2, &queue_dump , (uint8_t) --i, HAL_MAX_DELAY);  //echo each one as it's typed
-				printf("\n\r");
-
+				int q=0;  //index to go thru the queue
+				if (randoms_running)
+					{ //Here because we got a Halt/restart
+					timer_status = osTimerStop(lowercaseTimerHandle);
+					timer_status = osTimerStop(RandomSymbolTimerHandle);
+					randoms_running = false;
+					printf("QUEUE INPUT HALTED    Flush below:\n\r");
+					while (osMessageQueueGet(ASCII_Char_QueueHandle, got_char_ptr, &msg_prio, (uint32_t) 1) == osOK)
+						queue_dump[q++] = got_char;
+					queue_dump[q] ='\0';		// to be a string, has to be terminated in a null
+					printf("          %s\n\r",queue_dump);
+					osMessageQueueReset (ASCII_Char_QueueHandle);
+					printf("\n\r Press Button_3 to continue\n\r");
+					}
+				else  // were halted so restart
+					{
+					for (int i = 0; i <= QUEUE_SIZE; i++) queue_dump[i] = '\0';
+					osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
+					osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+					// The consumer gets shutoff with the randoms_running variable
+					randoms_running = true;
+					}
+				osDelay(3);
 				 /* ******************* STUDENT EDITABLE CODE STOP ******************* */
 			break;
 			}
@@ -835,8 +852,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			button_pushed = 1;
 			break;
 		case Button_2_Pin:
-			//osTimerStop(RandomSymbolTimerHandle);
-			//HAL_NVIC_DisableIRQ(EXTI4_IRQn);
 			button_pushed = 2;
 			break;
 		case Button_3_Pin:
@@ -887,16 +902,9 @@ void PQTimer_CB(void *argument)
 void Add_Random_Symbols_to_Queue(void *argument)
 {
   /* USER CODE BEGIN Add_Random_Symbols_to_Queue */
-	/* Extra credit -- duplicate and use this range
-	 * char rand_sym = get_random_char('\192','\255');
-	 */
+
 	char rand_sym = get_random_char('!','/');
-	// srand((unsigned) uwTick);
-	if (osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U) == osOK)
-		{
-		/* Show it and start another */
-		// HAL_UART_Transmit(&huart2, &rand_sym ,1, HAL_MAX_DELAY);  //echo each one as it's typed
-		}
+	osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U);
   /* USER CODE END Add_Random_Symbols_to_Queue */
 }
 
