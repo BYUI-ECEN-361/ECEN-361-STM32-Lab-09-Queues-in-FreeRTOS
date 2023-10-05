@@ -805,6 +805,7 @@ void process_button_Task(void *arguments)
 			break;
 
 			case 3:
+			{
 				/* Resets the Queue */
 				/* ****************** STUDENT EDITABLE CODE START ******************* */
 				int q=0;  //index to go thru the queue
@@ -834,6 +835,7 @@ void process_button_Task(void *arguments)
 					}
 				osDelay(3);
 				 /* ******************* STUDENT EDITABLE CODE STOP ******************* */
+			}
 			break;
 			}
 			button_pushed = 0;
