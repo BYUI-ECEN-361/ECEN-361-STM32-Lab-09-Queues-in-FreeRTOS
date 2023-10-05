@@ -75,11 +75,6 @@ const osMessageQueueAttr_t ASCII_Char_Queue_attributes = {
   .mq_mem = &ASCII_Char_QueueBuffer,
   .mq_size = sizeof(ASCII_Char_QueueBuffer)
 };
-/* Definitions for ProcessQueueTimer */
-osTimerId_t ProcessQueueTimerHandle;
-const osTimerAttr_t ProcessQueueTimer_attributes = {
-  .name = "ProcessQueueTimer"
-};
 /* Definitions for RandomSymbolTimer */
 osTimerId_t RandomSymbolTimerHandle;
 const osTimerAttr_t RandomSymbolTimer_attributes = {
@@ -124,7 +119,6 @@ static void MX_TIM17_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM7_Init(void);
 void StartDefaultTask(void *argument);
-void PQTimer_CB(void *argument);
 void Add_Random_Symbols_to_Queue(void *argument);
 void Add_Random_lowercase_to_Queue(void *argument);
 
@@ -216,6 +210,7 @@ int main(void)
   printf("\033[6;3HHello\r\n");
   printf("\033\143");
   printf("Welcome to ECEN-361 Lab-07\n\r\n\r");
+  printf("Button_1:  Stops lowercase     Button_2:  Stops symbols \n\r\n\r");
   HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 /**
  * Note that Timer-1 Channel 1 goes to our MultiBoard D3, and it's Negative True output
@@ -242,9 +237,6 @@ int main(void)
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
-  /* creation of ProcessQueueTimer */
-  ProcessQueueTimerHandle = osTimerNew(PQTimer_CB, osTimerOnce, NULL, &ProcessQueueTimer_attributes);
-
   /* creation of RandomSymbolTimer */
   RandomSymbolTimerHandle = osTimerNew(Add_Random_Symbols_to_Queue, osTimerPeriodic, NULL, &RandomSymbolTimer_attributes);
 
@@ -811,29 +803,33 @@ void process_button_Task(void *arguments)
 				int q=0;  //index to go thru the queue
 				if (randoms_running)     //Here because we got a Halt/restart
 					{
+					// Producers get shutoff
 					timer_status = osTimerStop(lowercaseTimerHandle);
 					timer_status = osTimerStop(RandomSymbolTimerHandle);
+					// The consumer gets shutoff with the randoms_running variable
 					randoms_running = false;
 					printf("QUEUE INPUT HALTED    Flush below:\n\r");
 					printf("QUEUE   0        1         2         3         4         5\n\r");
-					printf("        12345678901234567890123456789012345678901234567890\n%c",'\r');
+					printf("        12345678901234567890123456789012345678901234567890\n%c%c",'\r','\r');
 					while (osMessageQueueGet(ASCII_Char_QueueHandle, got_char_ptr, &msg_prio, (uint32_t) 1) == osOK)
 						queue_dump[q++] = got_char;
 					queue_dump[q] ='\0';		// to be a string, has to be terminated in a null
 					printf("        %s\n\r",queue_dump);
 					osMessageQueueReset (ASCII_Char_QueueHandle);
-					printf("                      Press Button_3 to continue");
+					printf("\n\r                      Press Button_3 to continue\n\r\r");
 					}
 				else  // were halted so restart
 					{
+					// Cleared out the shadow to print for the string display next time
 					for (int i = 0; i <= QUEUE_SIZE; i++) queue_dump[i] = '\0';
-					// The consumer gets shutoff with the randoms_running variable
+					printf("QUEUE Resumed\n\r\r");
+					// Turn on the consumer
 					randoms_running = true;
-					// Producers get shutoff
+					// Turn on the random producers
 					osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
 					osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
 					}
-				osDelay(3);
+				osDelay(30);
 				 /* ******************* STUDENT EDITABLE CODE STOP ******************* */
 			}
 			break;
@@ -888,15 +884,6 @@ void StartDefaultTask(void *argument)
 
   }
   /* USER CODE END 5 */
-}
-
-/* PQTimer_CB function */
-void PQTimer_CB(void *argument)
-{
-  /* USER CODE BEGIN PQTimer_CB */
-	/* This timer is the  */
-
-  /* USER CODE END PQTimer_CB */
 }
 
 /* Add_Random_Symbols_to_Queue function */
