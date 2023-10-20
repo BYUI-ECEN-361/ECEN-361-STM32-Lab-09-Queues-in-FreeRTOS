@@ -2,16 +2,12 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
+  * @brief          : ECEN-361-Lab-08  Queues
   *
-  * Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.
+  * BYU-Idaho
+  * Fall-2023 :   Lynn Watson
   *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * See the  STUDENTS EDITABLE places below to modify for submission
   *
   ******************************************************************************
   */
@@ -797,17 +793,37 @@ void process_button_Task(void *arguments)
 			break;
 
 			case 3:
-			{
-				/* Resets the Queue */
+				{
+				int q=0;
+
 				/* ****************** STUDENT EDITABLE CODE START ******************* */
-				int q=0;  //index to go thru the queue
-				if (randoms_running)     //Here because we got a Halt/restart
+				/*
+				 * This button ISR toggles the Queue Running
+				 * If we're already halted, then restart the consumer and producers
+				 * If we're running, then halt
+				 *
+				 *
+				 */
+				if (randoms_running)     //Start the HALT here
 					{
-					// Producers get shutoff
-					timer_status = osTimerStop(lowercaseTimerHandle);
-					timer_status = osTimerStop(RandomSymbolTimerHandle);
-					// The consumer gets shutoff with the randoms_running variable
-					randoms_running = false;
+
+				 /*
+				  *
+				  * To halt -- you'll need to:
+				   * 1.) Shut off the producers
+				   * 		Two of them produce on a timer, so stop the timers
+				   * 		One of the producers is just the keyboard so you can
+				   * 		assume the person quits typing.
+				   *
+				   * 2.) Stop the consumer -- This can be done with the
+				   *     randoms_running variable
+				   */
+					randoms_running = true;	//done for you
+				  /*
+				   *
+				   * 3.) Flush the Queue
+				   * 		(You might want to print it out before resetting -- printf's below)
+				   */
 					printf("QUEUE INPUT HALTED    Flush below:\n\r");
 					printf("QUEUE   0        1         2         3         4         5\n\r");
 					printf("        12345678901234567890123456789012345678901234567890\n%c%c",'\r','\r');
@@ -815,27 +831,34 @@ void process_button_Task(void *arguments)
 						queue_dump[q++] = got_char;
 					queue_dump[q] ='\0';		// to be a string, has to be terminated in a null
 					printf("        %s\n\r",queue_dump);
-					osMessageQueueReset (ASCII_Char_QueueHandle);
-					printf("\n\r                      Press Button_3 to continue\n\r\r");
+				   /*
+				    * 4.) Reset the Queues via the FreeRTOS command
+				   */
+
+					/*
+					 * ???
+					 */
+
 					}
 				else  // were halted so restart
 					{
 					// Cleared out the shadow to print for the string display next time
-					for (int i = 0; i <= QUEUE_SIZE; i++) queue_dump[i] = '\0';
 					printf("QUEUE Resumed\n\r\r");
 					// Turn on the consumer
 					randoms_running = true;
 					// Turn on the random producers
-					osTimerStart(RandomSymbolTimerHandle,Random_Symbol_Timer_Speed);
-					osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);
+
+					/*
+					 * ???
+					 */
+
 					}
-				osDelay(30);
 				 /* ******************* STUDENT EDITABLE CODE STOP ******************* */
 			}
 			break;
 			}
 			button_pushed = 0;
-		    osDelay(10);  // Time to make sure the switch is debounced
+		    osDelay(20);  // Time to make sure the switch is debounced
 		}
 	}
 
@@ -890,7 +913,6 @@ void StartDefaultTask(void *argument)
 void Add_Random_Symbols_to_Queue(void *argument)
 {
   /* USER CODE BEGIN Add_Random_Symbols_to_Queue */
-
 	char rand_sym = get_random_char('!','/');
 	osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U);
   /* USER CODE END Add_Random_Symbols_to_Queue */
@@ -901,9 +923,9 @@ void Add_Random_lowercase_to_Queue(void *argument)
 {
   /* USER CODE BEGIN Add_Random_lowercase_to_Queue */
 /* ****************** STUDENT EDITABLE CODE START ******************* */
-		char rand_sym ;
-		rand_sym = get_random_char('a','z');
-		osMessageQueuePut(ASCII_Char_QueueHandle, &rand_sym, 100, 0U);
+
+
+
 
 /* ****************** STUDENT EDITABLE CODE END ******************* */
   /* USER CODE END Add_Random_lowercase_to_Queue */
