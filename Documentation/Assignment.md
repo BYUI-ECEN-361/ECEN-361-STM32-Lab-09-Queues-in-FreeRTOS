@@ -1,5 +1,7 @@
 # ECEN-361 Lab-07:Queues and IPC
 
+     Student Name:  Fill-in HERE
+
 ## Introduction and Objectives of the Lab
 
 This lab will introduce the concept of interprocess communication mechanisms, particularly queues and task messages. This will be done in the framework of FreeRTOS middleware as supplied by the STM32 ecosystem. Semaphores are also a means of simply signalling other tasks, but are not covered in this lab.
