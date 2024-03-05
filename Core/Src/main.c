@@ -139,7 +139,7 @@ uint8_t recvd_data; // byte in from USART
 
 /*** Timings for the producers and consumers ****************/
 /**************  Producers **********************************/
-int Random_Symbol_Timer_Speed = 2300;     /* A symbol every 2.3-second */
+int Random_Symbol_Timer_Speed = 1500;     /* A symbol every 1.5-second */
 int Random_lowercase_Timer_Speed = 1800;  /* A lowercase every  1.8 second */
 /**************  Consumer  **********************************/
 int read_pacing_delay = 2000;		// Millisec to wait before taking each character
@@ -206,7 +206,7 @@ int main(void)
   printf("\033[6;3HHello\r\n");
   printf("\033\143");
   printf("Welcome to ECEN-361 Lab-07\n\r\n\r");
-  printf("Button_1:  Stops lowercase     Button_2:  Stops symbols \n\r\n\r");
+  printf("Button_1:  Toggles Symbols     Button_2:  Toggles Lowercase \n\r\n\r");
   HAL_UART_Receive_IT(&huart2,&recvd_data,1); //start next data receive interrupt
 /**
  * Note that Timer-1 Channel 1 goes to our MultiBoard D3, and it's Negative True output
@@ -226,7 +226,7 @@ int main(void)
 
   /* Create the semaphores(s) */
   /* creation of ProcessSemaphore */
-  ProcessSemaphoreHandle = osSemaphoreNew(1, 1, &ProcessSemaphore_attributes);
+  ProcessSemaphoreHandle = osSemaphoreNew(1, 0, &ProcessSemaphore_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */

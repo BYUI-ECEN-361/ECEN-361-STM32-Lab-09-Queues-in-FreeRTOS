@@ -1,4 +1,4 @@
-# ECEN-361 Lab-07:Queues and IPC
+# ECEN-361 Lab-09:Queues and IPC
 
      Student Name:  Fill-in HERE
 
@@ -12,23 +12,23 @@ Queues are a well-known data structure, serving a FIFO strategy to store/forward
 
 In FreeRTOS, the queue structure is global in nature, and available to be written-to and read-from most any other process. In general, processes will be dedicated to handing one or the other operation – either producing or consuming. Events (interrupts) can be setup to signal on various states of the queue: EMPTY, FULL, FILLED-to-a-LEVEL, etc. These can a be the source of interrupts and exceptions in processing. The queue can be configured to store any data type.
 
-For this lab we will build a small queue pipeline with three producers, and 1 consumer. Elements that go into the queue pipeline are from the superset of all ASCII characters, but each producer has the unique quality that they deliver only subsets of the full character set, so:
+For this lab we will build a small queue pipeline with three producers, and 2 consumers. Elements that go into the queue pipeline are from the superset of all ASCII characters, but each producer has the unique quality that they deliver only subsets of the full character set, so:
 
 **Producers**
 
-1. Random symbols, punctuation, etc. [**‘!’ ...’=’**] (from character ‘!’ to ‘=’ in ASCII table)
-    One character issued per 700mS
+1. Random symbols, punctuation, etc. [**‘!’ ...’/’**] (from character ‘!’ to ‘/’ in ASCII table)
+    One character issued per 1500mS
 2. Typed Uppercase Letters (from keyboard – PuTTY)  
     One character per keystroke – about 200mS (however fast you can type!)
 3. Random lowercase letters [**a..z**]  
-    One character issued per 400mS   
-    **(to be completed by student in Part 1)**
+    One character issued per 1800mS   
+    **(to be completed by student in Part 2)**
 
 **Consumer**:
 
-1. Reads the queue once every second and displays items on the queue
+1. Reads the queue once every two seconds and displays items on the queue
 2. Halt and Dump  
-   This consumer looks for the letter ‘Q’ being put the queue, then dumps the entire queue and stops production sources,  
+   This consumer looks for button 3 to be pressed, then stops production sources, and dumps the entire queue
    **(to be completed by student in Part 3)**
 
 **Other Processes**
@@ -41,11 +41,11 @@ The following is a simple diagram of a queue being fed by all three sources. As 
 
 There is also control on the production: a dedicated button start/stops each of the following producers.
 
-- The Random Character Producing Task Button_1 Start/Stop
+- The Random Symbol Producing Task Button_1 Start/Stop
 - The Random lowercase character Production Task Button_2 Start/Stop  
   **(to be completed by student in Part 2)**
 
-As given to the student, there is a single consumer outputting process which waits for data availability then sends that data to the USART2 out. (USB TTY via PuTTY).
+As given to the student, there is a  consumer outputting process which waits for button 3 to be pressed, then sends the queue to the USART2 out. (USB TTY via PuTTY).
 
 Note that keystrokes typed into the UART keyboard (via the TTY Terminal) are ‘filtered’ before being put onto the queue. This type of pre-processing is typical and could be likened to a real-world example of a tech-support site sending customers with different types of issues into different waiting queues.
 
@@ -54,7 +54,8 @@ In this code, all keystrokes typed are checked to see that they are strictly alp
 ## Part 1: Examine the existing code and operation
 
 1. Verify that the queue is adding random characters (7-seg count is increasing)
-2. Bring up your terminal emulator (PuTTY, etc.) and observe the characters being put into the queue  
+2. Bring up your terminal emulator (PuTTY, etc.)
+3. Press button 3 to observe the characters dumped from the queue.
       (random characters inserted with typing):  
       ![A screenshot of a computer Description automatically generated](media/5e4585218b634b7e0a932ece179d995f.png)
 
@@ -106,18 +107,20 @@ Currently, they are defined:
 
 **S1**: Start/Stop RandomSymbols from being put in the Queue
 
-**S2**: Start/Stop Randome lowercase letters from being put in the Queue
+**S2**: Start/Stop Random lowercase letters from being put in the Queue
 
 **S3**: HALT/RESUME taking characters from Queue. Upon halting, flush the Queue  
-(TO BE DONE BY STUDENT)
+
 
 Queue applications may have conditions that call for a stop to processing: maybe a call-operator has to take a break, or the potato truck is full and the next truck needs to come to be filled, some contaminated ingredients were introduced into the assembly line, etc.
 
-For the last part, let’s make a “HALT/RESTART” button that does the following:
+For the last part, let’s finish the “HALT/RESTART” button that does the following:
 
-- Disable further input (halt all the producers). See how it’s done with buttons **S1** and **S2**.
-- Print a “Halting message” on the TTY
+- Disable/Resume further input (halt all the producers). See how it’s done with buttons **S1** and **S2**.
+- Print a “Halting message” or "Resumed message" on the TTY
 - Pull all the contents off the queue and print them
+
+I have written the halting/queue dump part of the code, your job is to write the code to Disable/Resume further input (halt/resume all the producers).
 
 ## Extra Credit (5 pts maximum)
 
