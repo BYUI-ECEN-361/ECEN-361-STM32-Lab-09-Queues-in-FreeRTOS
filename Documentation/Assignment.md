@@ -122,9 +122,7 @@ For the last part, let’s finish the “HALT/RESTART” button that does the fo
 
 I have written the halting/queue dump part of the code, your job is to write the code to Disable/Resume further input (halt/resume all the producers).
 
-## Extra Credit (5 pts maximum)
-
-Do any one of the following, or submit something interesting of your own for extra credit.
+## Ideas for Credit to get to 'A' & Extra-Credit (2 pts for any)
 
 * Currently, the data is taken out of the queue only once every “read_pacing_delay” milliSeconds.  Add an option to change that queue read speed by way of user input.  If you add little decoding in the routine where a typed character is received, you could speed-up or slow-down the read pacing.  (That routine is: `HAL_UART_RxCpltCallback()` and already converts any character to upper case.   For example, you could make the “+” key make it go faster by lowering the pacing by 100mS.
   
