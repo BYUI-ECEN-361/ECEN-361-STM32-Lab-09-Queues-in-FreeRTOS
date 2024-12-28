@@ -1,0 +1,13 @@
+../Core/Src/MultiFunctionShield.c:30:6:shiftOut	32	static
+../Core/Src/MultiFunctionShield.c:75:6:MultiFunctionShield_Single_Digit_Display	16	static
+../Core/Src/MultiFunctionShield.c:91:6:set_Decimal_Point	16	static
+../Core/Src/MultiFunctionShield.c:97:6:Display_the_FULL	4	static
+../Core/Src/MultiFunctionShield.c:107:6:MultiFunctionShield_Display	16	static
+../Core/Src/MultiFunctionShield.c:164:6:MultiFunctionShield_Display_PWM	16	static
+../Core/Src/MultiFunctionShield.c:177:6:Clear_LEDs	8	static
+../Core/Src/MultiFunctionShield.c:195:6:MultiFunctionShield_Clear	4	static
+../Core/Src/MultiFunctionShield.c:206:6:MultiFunctionShield_WriteNumberToSegment	24	static
+../Core/Src/MultiFunctionShield.c:218:6:Display_Waiting	4	static
+../Core/Src/MultiFunctionShield.c:226:6:Display_All	8	static
+../Core/Src/MultiFunctionShield.c:231:6:disp_adc_on_7seg	40	static
+../Core/Src/MultiFunctionShield.c:257:6:MultiFunctionShield__ISRFunc	8	static
