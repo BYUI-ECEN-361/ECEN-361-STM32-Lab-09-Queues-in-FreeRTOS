@@ -61,7 +61,7 @@ In this code, all keystrokes typed are checked to see that they are strictly alp
 
 Now look through the code a bit and answer the following questions.
 
-## Part 1: Questions (2 pts)
+## Part 1: Questions (3 pts)
 
 * How are the interrupts for the buttons used to start/stop the respective producers for the Queue?
   
@@ -86,11 +86,7 @@ Complete the skeleton process to start inserting random lowercase characters. No
 - `lowercaseTimerHandle = osTimerNew(Add_Random_lowercase_to_Queue, *osTimerPeriodic*, NULL, \&lowercaseTimer_attributes); //(this enables the S/W Timer)`
 - `osTimerStart(lowercaseTimerHandle,Random_lowercase_Timer_Speed);`
 
-## Part 2: Questions (4 pts)
-
-* How are the interrupts for the buttons used to start/stop the respective producers for the Queue?
-  
-  <mark>[*answer here*]</mark>
+## Part 2: Questions (3 pts)
 
 * Paste a screenshot of the TTY with the Queue now filling with all three sources:
   Typing (‘A’ .. ‘Z’);   random characters (‘!’ .. ‘=’);   and your new random lowercase (‘a’ .. ‘z’) producing task
