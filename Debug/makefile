@@ -1,6 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (12.3.rel1)
+# Toolchain: GNU Tools for STM32 (13.3.rel1)
 ################################################################################
 
 -include ../makefile.init
@@ -64,8 +64,8 @@ all: main-build
 main-build: ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS.elf secondary-outputs
 
 # Tool invocations
-ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS.elf ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS.map: $(OBJS) $(USER_OBJS) C:\Users\lynn\Documents\Repositories\ECEN-361\Labs\ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS\STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\lynn\Documents\Repositories\ECEN-361\Labs\ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS\STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS.map" -Wl,--gc-sections -static -Wl,--no-warn-rwx-segments --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS.elf ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS.map: $(OBJS) $(USER_OBJS) C:\Users\lynn\Documents\Repositories\ECEN-361\ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS\STM32L476RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\lynn\Documents\Repositories\ECEN-361\ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS\STM32L476RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ECEN-361-STM32-Lab-09-Queues-in-FreeRTOS.map" -Wl,--gc-sections -static -Wl,--no-warn-rwx-segments --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
